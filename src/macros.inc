@@ -119,15 +119,41 @@ DrawRect .macro x1, y1, x2, y2, shadow
 .endm
 
 LoadB .macro addr, val
-
     lda #\val
     sta \addr
 .endm
 
-AddB .macro addr, val
+CopyW .macro src, dest
+    lda \src
+    sta \dest
+    lda \src+1
+    sta \dest+1
+.endm
 
-    lda \addr
+AddW .macro addr1, addr2
+    lda \addr1
+    clc
+    adc \addr2
+    sta \addr2
+    bcs _inchi
+    jmp _skip
+_inchi:
+    inc \addr2+1
+_skip:
+    nop
+.endm
+
+AddX .macro val
+
+    lda X1
     clc
     adc #\val
-    sta \addr
+    bcc _cont
+
+    sta X1
+    lda #$01
+    sta X1+1
+_cont:
+    sta X1
+
 .endm

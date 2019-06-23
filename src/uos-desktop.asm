@@ -14,11 +14,18 @@
         #DrawLine 0,190,319,190
         #DrawRect 100,70,219,140,1
 
+        
+        LoadB X1, $00
+        LoadB X1+1, $01
+        LoadB Y1, $0a
         lda #'X'
-        ;LoadB X1, $00
+        jsr GPRINT
+
+        ;LoadB X1, $fd
         ;LoadB X1+1, $00
         ;LoadB Y1, $0a
-        jsr GPRINT
+        ;lda #'y'
+        ;jsr GPRINT
 
         RTS
 

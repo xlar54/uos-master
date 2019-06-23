@@ -1018,7 +1018,7 @@ _SKIP2
 ;   .A = character
 ;
 ; ======================================================== 
-GPRINT:
+GPRINT:    
 
     ; if lowecase, fix value
     cmp #$c1
@@ -1026,13 +1026,18 @@ GPRINT:
     ; store char
     sec
     sbc #$20
-    pha
-    jmp _getoffset
-
+    sta tempchar
+    jmp _stash
 _fixlower:
     sec
     sbc #$80
-    pha
+    sta tempchar
+
+_stash:
+    ; stash X/Y
+    #CopyW X1, tempx
+    #CopyW Y1, tempy
+    
 
 _getoffset:
     ; get character offset
@@ -1041,9 +1046,11 @@ _getoffset:
     lda #>font
     sta $fc
 
-    pla
+    lda tempchar
     
     ; TODO: needs optimized
+    ; get the font offset for the character
+    ; $fb, $fc will contain the offset to the character
 
 _loop1:
     beq _skip0
@@ -1152,146 +1159,142 @@ _haveoffset:
 
 ; start plotting the character rows
 
-    ldy #$00
-    sty tempy
+    #AddW tempy, Y1
+    lda #$00
+    sta temprow
 
 _nextrow:
-    lda tempy
-    tay
+    ldy temprow
     lda ($fb),y
     and #%10000000
     cmp #%10000000
     bne _nextbit1
     ; plot it
-    #LoadB X1, 0
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit1:
+    #AddX 0
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW X1, tempx
+_nextbit1:
+    ldy temprow
     lda ($fb),y
     and #%01000000
     cmp #%01000000
     bne _nextbit2
     ; plot it
-    #LoadB X1, 1
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit2:
+    #AddX 1
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit2:
+    ldy temprow
     lda ($fb),y
     and #%00100000
     cmp #%00100000
     bne _nextbit3
     ; plot it
-    #LoadB X1, 2
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit3:
+    #AddX 2
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit3:
+    ldy temprow
     lda ($fb),y
     and #%00010000
     cmp #%00010000
     bne _nextbit4
     ; plot it
-    #LoadB X1, 3
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit4:
+    #AddX 3
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit4:
+    ldy temprow
     lda ($fb),y
     and #%00001000
     cmp #%00001000
     bne _nextbit5
     ; plot it
-    #LoadB X1, 4
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit5:
+    #AddX 4
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit5:
+    ldy temprow
     lda ($fb),y
     and #%00000100
     cmp #%00000100
     bne _nextbit6
     ; plot it
-    #LoadB X1, 5
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit6:
+    #AddX 5
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit6:
+    ldy temprow
     lda ($fb),y
     and #%00000010
     cmp #%00000010
     bne _nextbit7
     ; plot it
-    #LoadB X1, 6
-    #LoadB X1+1, 0
-    sty Y1
-    jsr GPLOT
-_nextbit7:
+    #AddX 6
     lda tempy
-    tay
+    sta Y1
+    jsr GPLOT
+    #CopyW tempx, X1
+_nextbit7:
+    ldy temprow
     lda ($fb),y
     and #%00000001
     cmp #%00000001
     bne _endrow
     ; plot it
-    #LoadB X1, 7
-    #LoadB X1+1, 0
-    sty Y1
+    #AddX 7
+    lda tempy
+    sta Y1
     jsr GPLOT
-
+    #CopyW tempx, X1
 _endrow:
 
-    inc tempy
-    lda tempy
+    inc temprow
+    lda temprow
     cmp #$08
     beq _end
-    tay
+
+    inc tempy
+    #CopyW tempx, X1
     jmp _nextrow
 
 _end:
     rts
 
-tempy:
+_plotit:
+    #AddW tempx, X1
+    lda tempy
+    sta Y1
+    jsr GPLOT
+    rts
+
+tempchar:
     .byte $00
-
-.comment
-.if \x > 255
-        lda #$01
-        sta X1+1
-        lda #\x-256
-.else
-        lda #$00
-        sta X1+1
-        lda #\x
-.fi
-        sta X1
-
-        lda #\y
-        sta Y1
-        
-        lda #$00
-        sta Y1+1
-
-        jsr GPLOT
-.endc
-
+tempx:
+    .byte $00, $00
+tempx2:
+    .byte $00, $00
+tempy:
+    .byte $00, $00
+temprow:
+    .byte $00
 
 
 font:
-.byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
+;.byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
+.byte $04, $07, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff ;space
 .byte $01, $07, $00, $80, $80, $80, $80, $00, $80, $80, $00 ; !
 .byte $03, $02, $00, $A0, $A0, $00, $00, $00, $00, $00, $00 ; "
 .byte $05, $07, $00, $50, $50, $F8, $50, $F8, $50, $50, $00 ; #
@@ -1325,6 +1328,40 @@ font:
 .byte $05, $07, $00, $70, $88, $10, $20, $20, $00, $20, $00 ; ?
 .byte $05, $07, $00, $70, $88, $B8, $A8, $B8, $80, $70, $00 ; @
 
+.byte $04, $05, $00, $70, $90, $90, $90, $50, $00, $00, $00 ;a
+.byte $04, $07, $00, $80, $80, $E0, $90, $90, $90, $E0, $00 ;b
+.byte $04, $05, $00, $60, $90, $80, $80, $70, $00, $00, $00 ;c
+.byte $04, $07, $00, $10, $10, $70, $90, $90, $90, $70, $00 ;d 
+.byte $04, $05, $00, $60, $90, $F0, $80, $70, $00, $00, $00 ;e
+.byte $02, $07, $00, $40, $80, $C0, $80, $80, $80, $80, $00 ;f
+.byte $04, $07, $02, $70, $90, $90, $90, $70, $10, $20, $00 ;g
+.byte $04, $07, $00, $80, $80, $E0, $90, $90, $90, $90, $00 ;h
+.byte $01, $07, $00, $80, $00, $80, $80, $80, $80, $80, $00 ;i
+.byte $02, $07, $02, $40, $00, $40, $40, $40, $40, $80, $00 ;j
+.byte $04, $07, $00, $80, $80, $90, $A0, $C0, $A0, $90, $00 ;k
+.byte $01, $07, $00, $80, $80, $80, $80, $80, $80, $80, $00 ;l
+.byte $07, $05, $00, $EC, $92, $92, $92, $92, $00, $00, $00 ;m
+.byte $04, $05, $00, $E0, $90, $90, $90, $90, $00, $00, $00 ;n
+.byte $05, $05, $00, $70, $88, $88, $88, $70, $00, $00, $00 ;o
+.byte $04, $07, $02, $E0, $90, $90, $90, $E0, $80, $80, $00 ;p
+.byte $04, $07, $02, $70, $90, $90, $90, $70, $10, $10, $00 ;q
+.byte $02, $05, $00, $40, $80, $80, $80, $80, $00, $00, $00 ;r
+.byte $03, $05, $00, $60, $80, $40, $20, $C0, $00, $00, $00 ;s
+.byte $02, $07, $00, $80, $C0, $80, $80, $80, $80, $40, $00 ;t
+.byte $04, $05, $00, $90, $90, $90, $90, $70, $00, $00, $00 ;u
+.byte $05, $05, $00, $88, $88, $88, $50, $20, $00, $00, $00 ;v
+.byte $07, $05, $00, $92, $92, $92, $92, $6C, $00, $00, $00 ;w
+.byte $05, $05, $00, $88, $50, $20, $50, $88, $00, $00, $00 ;x
+.byte $04, $07, $02, $90, $90, $90, $90, $70, $10, $20, $00 ;y
+.byte $04, $05, $00, $F0, $20, $40, $80, $F0, $00, $00, $00 ;z
+
+.byte $02, $07, $00, $C0, $80, $80, $80, $80, $80, $C0, $00 ; [
+.byte $07, $07, $00, $80, $40, $20, $10, $08, $04, $02, $00 ; slash
+.byte $02, $07, $00, $C0, $40, $40, $40, $40, $40, $C0, $00 ; ]
+.byte $05, $07, $00, $20, $50, $88, $00, $00, $00, $00, $00 ; ^
+.byte $05, $01, $00, $F8, $00, $00, $00, $00, $00, $00, $00 ; _
+.byte $02, $07, $00, $80, $80, $40, $00, $00, $00, $00, $00 ; `
+
 .byte $05, $07, $00, $20, $50, $88, $88, $F8, $88, $88, $00 ;A
 .byte $04, $07, $00, $E0, $90, $90, $E0, $90, $90, $E0, $00 ;B
 .byte $04, $07, $00, $60, $90, $80, $80, $80, $80, $70, $00 ;C
@@ -1352,36 +1389,3 @@ font:
 .byte $05, $07, $00, $88, $88, $88, $50, $20, $20, $20, $00 ;Y
 .byte $07, $07, $00, $F8, $08, $10, $20, $40, $80, $F8, $00 ;Z
 
-.byte $02, $07, $00, $C0, $80, $80, $80, $80, $80, $C0, $00 ; [
-.byte $07, $07, $00, $80, $40, $20, $10, $08, $04, $02, $00 ; slash
-.byte $02, $07, $00, $C0, $40, $40, $40, $40, $40, $C0, $00 ; ]
-.byte $05, $07, $00, $20, $50, $88, $00, $00, $00, $00, $00 ; ^
-.byte $05, $01, $00, $F8, $00, $00, $00, $00, $00, $00, $00 ; _
-.byte $02, $07, $00, $80, $80, $40, $00, $00, $00, $00, $00 ; `
-
-.byte $04, $05, $00, $70, $90, $90, $90, $50, $00, $00, $00 ;a
-.byte $04, $07, $00, $80, $80, $E0, $90, $90, $90, $E0, $00 ;b
-.byte $04, $05, $00, $60, $90, $80, $80, $70, $00, $00, $00 ;c
-.byte $04, $07, $00, $10, $10, $70, $90, $90, $90, $70, $00 ;d 
-.byte $04, $05, $00, $60, $90, $F0, $80, $70, $00, $00, $00 ;e
-.byte $02, $07, $00, $40, $80, $C0, $80, $80, $80, $80, $00 ;f
-.byte $04, $07, $02, $70, $90, $90, $90, $70, $10, $20, $00 ;g
-.byte $04, $07, $00, $80, $80, $E0, $90, $90, $90, $90, $00 ;h
-.byte $01, $07, $00, $80, $00, $80, $80, $80, $80, $80, $00 ;i
-.byte $02, $07, $02, $40, $00, $40, $40, $40, $40, $80, $00 ;j
-.byte $04, $07, $00, $80, $80, $90, $A0, $C0, $A0, $90, $00 ;k
-.byte $01, $07, $00, $80, $80, $80, $80, $80, $80, $80, $00 ;l
-.byte $07, $05, $00, $EC, $92, $92, $92, $92, $00, $00, $00 ;m
-.byte $04, $05, $00, $E0, $90, $90, $90, $90, $00, $00, $00 ;n
-.byte $05, $05, $00, $70, $88, $88, $88, $70, $00, $00, $00 ;o
-.byte $04, $07, $02, $E0, $90, $90, $90, $E0, $80, $80, $00 ;p
-.byte $04, $07, $02, $70, $90, $90, $90, $70, $10, $10, $00 ;q
-.byte $02, $05, $00, $40, $80, $80, $80, $80, $00, $00, $00 ;r
-.byte $03, $05, $00, $60, $80, $40, $20, $C0, $00, $00, $00 ;s
-.byte $02, $07, $00, $80, $C0, $80, $80, $80, $80, $40, $00 ;t
-.byte $04, $05, $00, $90, $90, $90, $90, $70, $00, $00, $00 ;u
-.byte $05, $05, $00, $88, $88, $88, $50, $20, $00, $00, $00 ;v
-.byte $07, $05, $00, $92, $92, $92, $92, $6C, $00, $00, $00 ;w
-.byte $05, $05, $00, $88, $50, $20, $50, $88, $00, $00, $00 ;x
-.byte $04, $07, $02, $90, $90, $90, $90, $70, $10, $20, $00 ;y
-.byte $04, $05, $00, $F0, $20, $40, $80, $F0, $00, $00, $00 ;z
