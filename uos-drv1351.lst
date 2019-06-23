@@ -1,0 +1,127 @@
+
+; 64tass Turbo Assembler Macro V1.53.1515 listing file
+; 64tass -a -o ./target/uos-drv1351.prg -L uos-drv1351.lst ./src/uos-drv1351.asm
+; Sun Jun 23 14:18:33 2019
+
+;Offset	;Hex		;Monitor	;Source
+
+;******  Processing input file: ./src/uos-drv1351.asm
+
+=$0314					iirq	= $0314
+=$d000					vic	= $d000
+=$d400					sid     = $d400
+=$dc00					cia     = $dc00
+=$dc02					cia_ddr	= $dc02
+=54297					potx	= sid+$19
+=54298					poty	= sid+$1a
+=53248					xpos	= vic+$00	;x position (lsb)
+=53249					ypos	= vic+$01	;y position
+=53264					xposmsb	= vic+$10	;x position (msb)
+>9ff0	00 00				iirq2:		.byte $00, $00
+>9ff2	00				opotx:		.byte $00
+>9ff3	00				opoty:		.byte $00
+>9ff4	00				newvalue:	.byte $00
+>9ff5	00				oldvalue:	.byte $00
+>9ff6	00				ciasave:	.byte $00
+.9f00	4c 09 9f	jmp $9f09	        jmp install1	;install mouse in port 1
+.9f03	4c 0c 9f	jmp $9f0c		jmp install2	;install mouse in port 2
+.9f06	4c 35 9f	jmp $9f35		jmp remove	    ;remove mouse wedge
+.9f09					install1:
+.9f09	a2 00		ldx #$00	    	ldx #0		    ;port 1 mouse
+>9f0b	2c					.byte $2c
+.9f0c					install2:
+.9f0c	a2 02		ldx #$02	    	ldx #2		    ;port 2 mouse
+.9f0e	ad 15 03	lda $0315	        lda iirq+1	    ;install irq wedge
+.9f11	c9 9f		cmp #$9f	        cmp #>mirq1
+.9f13	f0 1b		beq $9f30	        beq _90 	    ;...branch if already installed!
+.9f15	08		php		        php
+.9f16	78		sei		        sei
+.9f17	ad 14 03	lda $0314	        lda iirq	    ;save current irq indirect for our exit
+.9f1a	8d f0 9f	sta $9ff0	        sta iirq2
+.9f1d	ad 15 03	lda $0315	        lda iirq+1
+.9f20	8d f1 9f	sta $9ff1	        sta iirq2+1
+.9f23	bd 31 9f	lda $9f31,x	        lda _port,x	    ;point irq indirect to mouse driver
+.9f26	8d 14 03	sta $0314	        sta iirq
+.9f29	bd 32 9f	lda $9f32,x	        lda _port+1,x
+.9f2c	8d 15 03	sta $0315	        sta iirq+1
+.9f2f	28		plp		        plp
+.9f30	60		rts		_90:	rts
+>9f31	4f 9f				_port:	.word mirq1
+>9f33	4c 9f					.word mirq2
+.9f35					remove:
+.9f35	ad 15 03	lda $0315	        lda iirq+1	    ;remove irq wedge
+.9f38	c9 9f		cmp #$9f		cmp #>mirq1
+.9f3a	d0 0f		bne $9f4b		bne _190 	    ;...branch if already removed!
+.9f3c	08		php			php
+.9f3d	78		sei		        sei
+.9f3e	ad f0 9f	lda $9ff0	        lda iirq2	    ;restore saved indirect
+.9f41	8d 14 03	sta $0314	        sta iirq
+.9f44	ad f1 9f	lda $9ff1	        lda iirq2+1
+.9f47	8d 15 03	sta $0315	        sta iirq+1
+.9f4a	28		plp		        plp
+.9f4b	60		rts		_190: 	rts
+.9f4c					mirq2:
+.9f4c	a9 80		lda #$80	        lda #$80	    ;port2 mouse scan
+>9f4e	2c				        .byte $2c
+.9f4f					mirq1:
+.9f4f	a9 40		lda #$40	        lda #$40	    ;port1 mouse scan
+.9f51	20 ba 9f	jsr $9fba	        jsr setpot	    ;configure cia per .a
+.9f54	ad 19 d4	lda $d419	        lda potx	    ;get delta values for x
+.9f57	ac f2 9f	ldy $9ff2	        ldy opotx
+.9f5a	20 90 9f	jsr $9f90	        jsr movchk
+.9f5d	8c f2 9f	sty $9ff2	        sty opotx
+.9f60	18		clc		        clc		        ;modify low order x position
+.9f61	6d 00 d0	adc $d000	        adc xpos
+.9f64	8d 00 d0	sta $d000	        sta xpos
+.9f67	8a		txa		        txa
+.9f68	69 00		adc #$00	        adc #$00
+.9f6a	29 01		and #$01	        and #%00000001
+.9f6c	4d 10 d0	eor $d010	        eor xposmsb
+.9f6f	8d 10 d0	sta $d010	        sta xposmsb
+.9f72	ad 1a d4	lda $d41a	        lda poty	    ;get delta value for y
+.9f75	ac f3 9f	ldy $9ff3	        ldy opoty
+.9f78	20 90 9f	jsr $9f90	        jsr movchk
+.9f7b	8c f3 9f	sty $9ff3	        sty opoty
+.9f7e	38		sec		        sec		        ;modify y position (decrease y for increase in pot)
+.9f7f	49 ff		eor #$ff	        eor #$ff
+.9f81	6d 01 d0	adc $d001	        adc ypos
+.9f84	8d 01 d0	sta $d001	        sta ypos
+.9f87	ae f6 9f	ldx $9ff6	        ldx ciasave	    ;restore keyboard
+.9f8a	8e 00 dc	stx $dc00	        stx cia
+.9f8d	6c f0 9f	jmp ($9ff0)	_90 	jmp (iirq2)	    ;continue w/ irq operation
+.9f90					movchk:
+.9f90	8c f5 9f	sty $9ff5	        sty oldvalue	;save old & new values
+.9f93	8d f4 9f	sta $9ff4		    sta newvalue
+.9f96	a2 00		ldx #$00	        ldx #0		    ;preload x w/ 0
+.9f98	38		sec		        sec		        ;a = mod64(new-old)
+.9f99	ed f5 9f	sbc $9ff5	        sbc oldvalue
+.9f9c	29 7f		and #$7f	        and #%01111111
+.9f9e	c9 40		cmp #$40	        cmp #%01000000	;if a > 0
+.9fa0	b0 07		bcs $9fa9	        bcs _50
+.9fa2	4a		lsr a		        lsr a		    ;   then a = a/2
+.9fa3	f0 12		beq $9fb7	        beq _80		    ;      if a <> 0
+.9fa5	ac f4 9f	ldy $9ff4	        ldy newvalue	;         then y = newvalue
+.9fa8	60		rts		        rts		        ;              return
+.9fa9	09 c0		ora #$c0	_50 	ora #%11000000	;   else or-in high order bits
+.9fab	c9 ff		cmp #$ff	        cmp #$ff	    ;      if a <> -1
+.9fad	f0 08		beq $9fb7	        beq _80
+.9faf	38		sec		        sec		        ;         then a = a/2
+.9fb0	6a		ror a		        ror a
+.9fb1	a2 ff		ldx #$ff	        ldx #$ff	    ;              x = -1
+.9fb3	ac f4 9f	ldy $9ff4	        ldy newvalue	;              y = newvalue
+.9fb6	60		rts		        rts		        ;              return
+.9fb7	a9 00		lda #$00	_80 	lda #0		    ;a = 0
+.9fb9	60		rts			rts		        ;return w/ y = old value
+.9fba					setpot:
+.9fba	ae 00 dc	ldx $dc00	        ldx cia		    ;save keyboard lines
+.9fbd	8e f6 9f	stx $9ff6		stx ciasave
+.9fc0	8d 00 dc	sta $dc00		sta cia		    ;connect appropriate port to sid
+.9fc3	a2 04		ldx #$04	        ldx #4
+.9fc5	a0 c7		ldy #$c7	        ldy #$c7	;delay 4ms to let lines settle & get sync-ed
+.9fc7	88		dey		_10	dey
+.9fc8	d0 fd		bne $9fc7	        bne _10
+.9fca	ca		dex		        dex
+.9fcb	d0 fa		bne $9fc7	        bne _10
+.9fcd	60		rts		        rts
+
+;******  End of listing
