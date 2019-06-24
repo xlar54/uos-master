@@ -1012,13 +1012,13 @@ _SKIP2
 
 ; ======================================================== 
 ;
-; GPrint
-;   .X
-;   .Y
+; GPUTC
+;   X1/X2
+;   Y1
 ;   .A = character
 ;
 ; ======================================================== 
-GPRINT:    
+GPUTC:    
 
     ; if lowecase, fix value
     cmp #$c1
@@ -1035,6 +1035,7 @@ _fixlower:
 
 _stash:
     ; stash X/Y
+    #CopyW X1, orginalX
     #CopyW X1, tempx
     #CopyW Y1, tempy
     
@@ -1171,10 +1172,10 @@ _nextrow:
     bne _nextbit1
     ; plot it
     #AddX 0
-    lda tempy
-    sta Y1
+    #CopyW tempx, X1
+    #CopyW tempy, Y1
     jsr GPLOT
-    #CopyW X1, tempx
+    #CopyW orginalX, tempx
 _nextbit1:
     ldy temprow
     lda ($fb),y
@@ -1183,10 +1184,10 @@ _nextbit1:
     bne _nextbit2
     ; plot it
     #AddX 1
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit2:
     ldy temprow
     lda ($fb),y
@@ -1195,10 +1196,10 @@ _nextbit2:
     bne _nextbit3
     ; plot it
     #AddX 2
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit3:
     ldy temprow
     lda ($fb),y
@@ -1207,10 +1208,10 @@ _nextbit3:
     bne _nextbit4
     ; plot it
     #AddX 3
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit4:
     ldy temprow
     lda ($fb),y
@@ -1219,10 +1220,10 @@ _nextbit4:
     bne _nextbit5
     ; plot it
     #AddX 4
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit5:
     ldy temprow
     lda ($fb),y
@@ -1231,10 +1232,10 @@ _nextbit5:
     bne _nextbit6
     ; plot it
     #AddX 5
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit6:
     ldy temprow
     lda ($fb),y
@@ -1243,10 +1244,10 @@ _nextbit6:
     bne _nextbit7
     ; plot it
     #AddX 6
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _nextbit7:
     ldy temprow
     lda ($fb),y
@@ -1255,10 +1256,10 @@ _nextbit7:
     bne _endrow
     ; plot it
     #AddX 7
-    lda tempy
-    sta Y1
-    jsr GPLOT
     #CopyW tempx, X1
+    #CopyW tempy, Y1
+    jsr GPLOT
+    #CopyW orginalX, tempx
 _endrow:
 
     inc temprow
@@ -1267,7 +1268,7 @@ _endrow:
     beq _end
 
     inc tempy
-    #CopyW tempx, X1
+    #CopyW orginalX, tempx
     jmp _nextrow
 
 _end:
@@ -1284,17 +1285,43 @@ tempchar:
     .byte $00
 tempx:
     .byte $00, $00
-tempx2:
+orginalX:
     .byte $00, $00
 tempy:
     .byte $00, $00
 temprow:
     .byte $00
 
+; ======================================================== 
+;
+; GPUTS
+;   X1/X2
+;   Y1
+;   $FB,$FC = ptr to string
+;
+; ======================================================== 
+GPUTS:
+    ldy #$00
+_loop:
+    lda ($fb),y
+    beq _done
+    jsr GPUTC
+    INY
+    #AddX 10
+    jmp _loop
+
+_done:
+    rts
+
+
+
+cursorx:
+    .byte $00, $00
+cursory:
+    .byte $00, $00
 
 font:
-;.byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
-.byte $04, $07, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff ;space
+.byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
 .byte $01, $07, $00, $80, $80, $80, $80, $00, $80, $80, $00 ; !
 .byte $03, $02, $00, $A0, $A0, $00, $00, $00, $00, $00, $00 ; "
 .byte $05, $07, $00, $50, $50, $F8, $50, $F8, $50, $50, $00 ; #
@@ -1389,3 +1416,4 @@ font:
 .byte $05, $07, $00, $88, $88, $88, $50, $20, $20, $20, $00 ;Y
 .byte $07, $07, $00, $F8, $08, $10, $20, $40, $80, $F8, $00 ;Z
 
+.byte $04, $07, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff ; rvs space

@@ -18,6 +18,6 @@ GROFF       = $c172
 SETCOLOR    = $c18d
 LINE        = $c1ac
 CIRCLE      = $c379
-GPRINT      = $c583
+GPUTC       = $c583
 
 install1    = $9f09

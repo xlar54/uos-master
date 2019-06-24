@@ -145,15 +145,16 @@ _skip:
 
 AddX .macro val
 
-    lda X1
+    lda tempx
     clc
     adc #\val
-    bcc _cont
-
-    sta X1
+    bcs _incx
+    sta tempx
+    jmp _endm
+_incx:
+    sta tempx
     lda #$01
-    sta X1+1
-_cont:
-    sta X1
-
+    sta tempx+1
+_endm:
+    nop
 .endm
