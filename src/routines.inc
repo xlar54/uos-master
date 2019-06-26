@@ -18,51 +18,17 @@
 ;    along with UOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
-.include "equates.inc"
-.include "routines.inc"
-.include "macros.inc"
-.include "kernal.inc"
-.include "vic-ii.inc"
+APP_START   = $1000
+APP_CLICK   = $1500
 
+InitGr      = $c01b
+GPLOT       = $c036
+GRON        = $c0c9
+GROFF       = $c172
+SETCOLOR    = $c18d
+LINE        = $c1ac
+CIRCLE      = $c379
+GPUTC       = $c583
+GPUTS       = $c6fa
 
-* = APP_START
-
-        #PenWrite
-        #DrawLine 0,190,319,190
-        #DrawRect 100,70,219,140,1
-
-        #LoadB X1, $70
-        #LoadB X1+1, $00
-        #LoadB Y1, $50
-        lda #<msg
-        sta r1
-        lda #>msg
-        sta r2
-        jsr GPUTS
-
-        #LoadB X1, $05
-        #LoadB X1+1, $00
-        #LoadB Y1, $bf
-        lda #<menu
-        sta r1
-        lda #>menu
-        sta r2
-        jsr GPUTS
-        
-
-        RTS
-
-* = APP_CLICK
-        #PenErase
-        #DrawRect 100,70,219,140,1
-        RTS
-
-;WAIT     JSR GETIN
-;         BEQ WAIT
-;         RTS
-
-msg:
-        .text "Hello world", $00
-
-menu:
-        .text "uos", $00
+install1    = $9f09

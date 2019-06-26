@@ -1,3 +1,4 @@
+.include "equates.inc"
 .include "macros.inc"
 .include "vic-ii.inc"
 .include "kernal.inc"
@@ -16,10 +17,6 @@
 
 ; CHROUT   = $FFD2
 
-X1       = $02
-Y1       = $04
-X2       = $06
-Y2       = $08
 DX       = $0A
 DY       = $0C
 ROW      = $0D            ;Bitmap row
@@ -1258,7 +1255,7 @@ tempwidth:
 GPUTS:
     ldy #$00
 _loop:
-    lda ($09),y
+    lda (r1),y
     beq _done
     TAX
     TYA
@@ -1267,6 +1264,7 @@ _loop:
     jsr GPUTC
     PLA
     tay
+    inc X1
     inc X1
     inc X1
     bne _skip

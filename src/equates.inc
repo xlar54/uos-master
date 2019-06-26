@@ -18,51 +18,13 @@
 ;    along with UOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
-.include "equates.inc"
-.include "routines.inc"
-.include "macros.inc"
-.include "kernal.inc"
-.include "vic-ii.inc"
+X1          = $02
+Y1          = $04
+X2          = $06
+Y2          = $08
 
-
-* = APP_START
-
-        #PenWrite
-        #DrawLine 0,190,319,190
-        #DrawRect 100,70,219,140,1
-
-        #LoadB X1, $70
-        #LoadB X1+1, $00
-        #LoadB Y1, $50
-        lda #<msg
-        sta r1
-        lda #>msg
-        sta r2
-        jsr GPUTS
-
-        #LoadB X1, $05
-        #LoadB X1+1, $00
-        #LoadB Y1, $bf
-        lda #<menu
-        sta r1
-        lda #>menu
-        sta r2
-        jsr GPUTS
-        
-
-        RTS
-
-* = APP_CLICK
-        #PenErase
-        #DrawRect 100,70,219,140,1
-        RTS
-
-;WAIT     JSR GETIN
-;         BEQ WAIT
-;         RTS
-
-msg:
-        .text "Hello world", $00
-
-menu:
-        .text "uos", $00
+r1          = $09
+r2          = $0a
+r3          = $0b
+r4          = $0c
+r5          = $0d

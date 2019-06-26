@@ -1,12 +1,29 @@
 ;==========================================================================
 ; UOS
 ; Scott Hutter
+;
+;   This file is part of UOS.
+;
+;    UOS is free software: you can redistribute it and/or modify
+;    it under the terms of the GNU General Public License as published by
+;    the Free Software Foundation, either version 3 of the License, or
+;    (at your option) any later version.
+;
+;    UOS is distributed in the hope that it will be useful,
+;    but WITHOUT ANY WARRANTY; without even the implied warranty of
+;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;    GNU General Public License for more details.
+;
+;    You should have received a copy of the GNU General Public License
+;    along with UOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
-.include "uos.inc"
+.include "equates.inc"
+.include "routines.inc"
+.include "macros.inc"
 .include "kernal.inc"
 .include "vic-ii.inc"
-.include "macros.inc"
+
 
 * = $0801    ;start of BASIC area
 
@@ -161,11 +178,11 @@ files:  .TEXT "uos-gfx", $00
 
 LOADIMM:
 	PHA     		; save A
-	TYA			    ; copy Y
+	TYA			; copy Y
 	PHA  			; save Y
-	TXA			    ; copy X
+	TXA			; copy X
 	PHA  			; save X
-	TSX			    ; get stack pointer
+	TSX			; get stack pointer
 	LDA $0104,X		; get return address low byte (+4 to correct pointer)
 	STA $BC			; save in page zero
 	LDA $0105,X		; get return address high byte (+5 to correct pointer)
@@ -173,31 +190,31 @@ LOADIMM:
 	LDY #$01		; set index (+1 to allow for return address offset)
 LOADIMM2:
 	LDA ($BC),Y		; get byte from string
-	BEQ LOADIMM3	; exit if null (end of text)
+	BEQ LOADIMM3	        ; exit if null (end of text)
 
-	;JSR CHAROUT	; else display character
-    DEY
+	;JSR CHAROUT	        ; else display character
+        DEY
 	STA file,Y
-    INY
-    TYA
-    STA ftmp
-    ;
-    INY			    ; increment index
-	BNE LOADIMM2	; loop (exit if 256th character)
+        INY
+        TYA
+        STA ftmp
+
+        INY			; increment index
+	BNE LOADIMM2	        ; loop (exit if 256th character)
 
 LOADIMM3:
-	TYA			    ; copy index
-	CLC			    ; clear carry
+	TYA                     ; copy index
+	CLC			; clear carry
 	ADC $BC			; add string pointer low byte to index
 	STA $0104,X		; put on stack as return address low byte
-				    ; (+4 to correct pointer, X is unchanged)
+				; (+4 to correct pointer, X is unchanged)
 	LDA #$00		; clear A
-	ADC $BD		    ; add string pointer high byte
+	ADC $BD		        ; add string pointer high byte
 	STA $0105,X		; put on stack as return address high byte
-				    ; (+5 to correct pointer, X is unchanged)
-	PLA			    ; pull value
+				; (+5 to correct pointer, X is unchanged)
+	PLA			; pull value
 	TAX  			; restore X
-	PLA			    ; pull value
+	PLA			; pull value
 	TAY  			; restore Y
 	PLA  			; restore A
 	RTS
