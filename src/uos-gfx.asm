@@ -1037,6 +1037,7 @@ _stash:
     ; stash X/Y
     #CopyW X1, orginalX
     #CopyW X1, tempx
+    #CopyW Y1, orginalY
     #CopyW Y1, tempy
     
 
@@ -1153,133 +1154,81 @@ _iterate:
     jmp _loop1
 
 _haveoffset:
-    ; skip 3 meta bytes
+    ; get width
+    ldy #$00
+    lda ($fb),y
+    sta tempwidth
+    sta orginalWidth
     inc $fb
+    ; height
     inc $fb
+    ; base
     inc $fb
 
-; start plotting the character rows
+; start plotting the character bit rows
 
-    #AddW tempy, Y1
+    lda Y1                  ; set the Y location for plotting
+    sta tempy
     lda #$00
-    sta temprow
+    sta temprow             ; start with the 0th row
 
-_nextrow:
+_again:
     ldy temprow
-    lda ($fb),y
-    and #%10000000
-    cmp #%10000000
-    bne _nextbit1
-    ; plot it
-    #AddX 0
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit1:
-    ldy temprow
-    lda ($fb),y
-    and #%01000000
-    cmp #%01000000
-    bne _nextbit2
-    ; plot it
-    #AddX 1
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit2:
-    ldy temprow
-    lda ($fb),y
-    and #%00100000
-    cmp #%00100000
-    bne _nextbit3
-    ; plot it
-    #AddX 2
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit3:
-    ldy temprow
-    lda ($fb),y
-    and #%00010000
-    cmp #%00010000
-    bne _nextbit4
-    ; plot it
-    #AddX 3
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit4:
-    ldy temprow
-    lda ($fb),y
-    and #%00001000
-    cmp #%00001000
-    bne _nextbit5
-    ; plot it
-    #AddX 4
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit5:
-    ldy temprow
-    lda ($fb),y
-    and #%00000100
-    cmp #%00000100
-    bne _nextbit6
-    ; plot it
-    #AddX 5
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit6:
-    ldy temprow
-    lda ($fb),y
-    and #%00000010
-    cmp #%00000010
-    bne _nextbit7
-    ; plot it
-    #AddX 6
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
-_nextbit7:
-    ldy temprow
-    lda ($fb),y
-    and #%00000001
-    cmp #%00000001
-    bne _endrow
-    ; plot it
-    #AddX 7
-    #CopyW tempx, X1
-    #CopyW tempy, Y1
-    jsr GPLOT
-    #CopyW orginalX, tempx
+    lda ($fb),y             ; each byte is one row
+    and bitcompare          ; check the bit
+    cmp bitcompare
+    bne _nextbit            ; if not set, skip this pixel
+    
+    lda tempx               ; get ready to plot the pixel
+    clc                     ; by calculating the offset (bit #) + 0-319
+    adc xoffset             ; in X1, X1+1
+    bcs _incx
+    sta tempx
+    jmp _skiphi
+_incx:
+    sta tempx               ; if X > 255, set tempx+1 to zero 1 to indicate this
+    lda #$01
+    sta tempx+1
+_skiphi:
+    #CopyW tempx, X1        ; Copy tempx/tempx+1 to X1/X1+1
+    #CopyW tempy, Y1        ; Copy tempy/tempy+1 to Y1/Y1+1
+    jsr GPLOT               ; plot the pixel
+    #CopyW orginalX, tempx  ; reset tempx to original val for next bit
+_nextbit:
+    clc
+    ror bitcompare          ; rotate the next bit into position for testing
+    dec tempwidth           ; decrease the width counter
+    beq _endrow
+    ;bcs _endrow             ; (but if zero, we are done)
+    inc xoffset             ; increase the plotting xoffset value since each bit represents the next pixel
+    jmp _again              ; go again for next bit
 _endrow:
+    lda #$80                ; done with this row...reset the data
+    sta bitcompare
+    lda #$00
+    sta xoffset
 
-    inc temprow
+    lda orginalWidth        ; reset the width counter
+    sta tempwidth
+
+    inc temprow             ; increase the row counter
     lda temprow
-    cmp #$08
-    beq _end
+    cmp #$08                ; if 8, then we are at the end / bottom of this character
+    beq _end                ; get out
 
-    inc tempy
+    inc tempy               ; move to next row
     #CopyW orginalX, tempx
-    jmp _nextrow
+    jmp _again              ; do the next row
 
 _end:
+    #CopyW orginalY, Y1
     rts
 
-_plotit:
-    #AddW tempx, X1
-    lda tempy
-    sta Y1
-    jsr GPLOT
-    rts
+bitcompare:
+    .byte $80
+xoffset:
+    .byte $00
+
 
 tempchar:
     .byte $00
@@ -1287,27 +1236,44 @@ tempx:
     .byte $00, $00
 orginalX:
     .byte $00, $00
+orginalY:
+    .byte $00, $00
 tempy:
     .byte $00, $00
 temprow:
+    .byte $00
+orginalWidth:
+    .byte $00
+tempwidth:
     .byte $00
 
 ; ======================================================== 
 ;
 ; GPUTS
-;   X1/X2
-;   Y1
-;   $FB,$FC = ptr to string
+;   r1/r2 = address of string
+;   X1/X1+1 = x pos
+;   Y1 = y pos
 ;
 ; ======================================================== 
 GPUTS:
     ldy #$00
 _loop:
-    lda ($fb),y
+    lda ($09),y
     beq _done
+    TAX
+    TYA
+    pha
+    txa
     jsr GPUTC
-    INY
-    #AddX 10
+    PLA
+    tay
+    inc X1
+    inc X1
+    bne _skip
+    lda #$01
+    sta X1+1
+_skip:
+    iny 
     jmp _loop
 
 _done:
