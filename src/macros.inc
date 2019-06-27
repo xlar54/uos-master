@@ -20,14 +20,14 @@
 
 HiresInit .macro
 
-    JSR InitGr
+    JSR GFX_INIT
 
 .endm
 
 HiresOn .macro fgcol, bcol
 
     LDA #(\fgcol * 16 + \bcol)
-    JSR GRON
+    JSR GFX_ON
 
 .endm
 
@@ -35,21 +35,21 @@ HiresOff .macro
 
     lda #$93
     jsr CHROUT
-    jsr GROFF
+    jsr GFX_OFF
 
 .endm
 
 PenWrite .macro
 
     LDA #$01
-    JSR SETCOLOR
+    JSR GFX_SETCOLOR
 
 .endm
 
 PenErase .macro
 
     LDA #$00
-    JSR SETCOLOR
+    JSR GFX_SETCOLOR
 
 .endm
 
@@ -71,7 +71,7 @@ SetPixel .macro x, y
         lda #$00
         sta Y1+1
 
-        jsr GPLOT
+        jsr GFX_SETPIXEL
 .endm
 
 DrawLine .macro x1, y1, x2, y2
@@ -106,7 +106,7 @@ DrawLine .macro x1, y1, x2, y2
         sta Y1+1
         sta Y2+1
 
-        jsr LINE
+        jsr GFX_LINE
 .endm
 
 
@@ -179,4 +179,14 @@ _endm:
     nop
 .endm
 
+Print .macro x2, x1, y1, msg
+    #LoadB X1, \x1
+    #LoadB X1+1, \x2
+    #LoadB Y1, \y1
+    lda #<\msg
+    sta r1
+    lda #>\msg
+    sta r2
+    jsr GPUTS
+.endm
 

@@ -50,7 +50,7 @@ SETTIM = $FFDB;  ----  F6E4  set jiffy clock                    in: A=MSB, X=mid
 RDTIM  = $FFDE;  ----  F6DD  read jiffy clock                   out:A=MSB, X=middle, Y=LSB             - - -  A X Y  A X Y
 STOP   = $FFE1;  0328  F6ED  check stop key                     out:Z=0 if STOP not used; X unchanged  - - -  A - -  A - -
 ;                                                                   Z=1 if STOP used; X changed        - - -  A - -  A X -
-;                                                                   A=last line of keyboard matrix
+;                                                                   A=last GFX_LINE of keyboard matrix
 GETIN  = $FFE4;  032A  F13E  get a byte from channel            out:keyboard:A=0 if puffer empty       - - -  A - -  A X Y
 ;                                                                   RS232:status byte                  - - -  A - -  A - -
 ;                                                                   serial:status byte                 - - -  A - -  A - -

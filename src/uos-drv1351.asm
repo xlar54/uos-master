@@ -154,13 +154,13 @@ _80 	lda #0		    ;a = 0
 
 
 setpot:
-        ldx cia		    ;save keyboard lines
+        ldx cia		    ;save keyboard GFX_LINEs
 	stx ciasave
 
 	sta cia		    ;connect appropriate port to sid
 
         ldx #4
-        ldy #$c7	;delay 4ms to let lines settle & get sync-ed
+        ldy #$c7	;delay 4ms to let GFX_LINEs settle & get sync-ed
 _10	dey 
         bne _10
         dex

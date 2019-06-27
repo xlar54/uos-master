@@ -4,19 +4,15 @@
 .include "kernal.inc"
 
 ; ========================================================    
-; GRLIB -- hires bitmap graphics library
+; UOS-GFX
 ;
-; Basically just a modified BLARG
+; Based on GRLIB
 ;
-; SLJ 5/20/00
 ; http:;www.ffd2.com/fridge/grlib/
 ; ========================================================
 * = $C000
 
 ; Constants
-
-; CHROUT   = $FFD2
-
 DX       = $0A
 DY       = $0C
 ROW      = $0D            ;Bitmap row
@@ -25,7 +21,7 @@ INRANGE  = $0F            ;Range check flag
 
 RADIUS   = $10
 
-CHUNK1   = $11            ;Circle routine stuff
+CHUNK1   = $11            ;GFX_CIRCLE routine stuff
 OLDCH1   = $12
 CHUNK2   = $13
 OLDCH2   = $14
@@ -51,22 +47,22 @@ TEMP     = $20            ;1 byte
 ; Jump table
 ;
 ; ======================================================== 
-         JMP InitGr
-         JMP SetOrg
-         JMP GRON
-         JMP GROFF
-         JMP SETCOLOR
-         JMP GPLOT
-         JMP PLOTABS
-         JMP LINE
-         JMP CIRCLE
+         JMP GFX_INIT
+         JMP GFX_SETORG
+         JMP GFX_ON
+         JMP GFX_OFF
+         JMP GFX_SETCOLOR
+         JMP GFX_SETPIXEL
+         JMP GFX_PLOTABS
+         JMP GFX_LINE
+         JMP GFX_CIRCLE
 
 ; ======================================================== 
 ;
 ; Initialize stuff
 ;
 ; ======================================================== 
-InitGr:   
+GFX_INIT:   
          LDA #00
          STA ORGX
          STA ORGY
@@ -85,13 +81,14 @@ InitGr:
 ORGX:     .byte $00
 ORGY:     .byte $00
 
-SetOrg:   
+GFX_SETORG:   
          STX ORGX
          STY ORGY
          RTS
+
 ; ======================================================== 
 ;
-; GPLOT -- plot the point in x1,y1
+; GFX_SETPIXEL -- plot the point in x1,y1
 ;
 ; Note that x1 and y1 are 16-bit!
 ;
@@ -105,8 +102,8 @@ SetOrg:
 ;
 ; ======================================================== 
 DONTPLOT: .byte $01           ;0=Don't plot point, just compute
-                          ;coordinates (used by e.g. circles)
-GPLOT:     
+                          ;coordinates (used by e.g. GFX_CIRCLEs)
+GFX_SETPIXEL:     
          LDA Y1
          SEC
          SBC ORGY
@@ -117,10 +114,10 @@ GPLOT:
 _C1      LDA X1
          SBC ORGX
          STA X1
-         BCS PLOTABS
+         BCS GFX_PLOTABS
          DEC X1+1
 
-PLOTABS:  
+GFX_PLOTABS:  
          LDA Y1
          STA ROW
          AND #7
@@ -200,7 +197,7 @@ _rts     STA INRANGE
 
 ; ======================================================== 
 ;
-; GRON -- turn graphics on.
+; GFX_ON -- turn graphics on.
 ;
 ; .A = 0 -> Turn bitmap on
 ;
@@ -211,7 +208,7 @@ _rts     STA INRANGE
 
 BASE:   .byte $A0          ;Address of bitmap, hi byte
 
-GRON:     
+GFX_ON:     
         TAX
         LDA $D011        ;Skip if bitmap is already on.
         AND #%00100000
@@ -237,7 +234,7 @@ GRON:
         STA $D011
 CLEAR:  
         TXA
-        BEQ GRONDONE
+        BEQ GFX_ONDONE
 CLEARCOLOR: 
          LDY #$00
          TXA
@@ -284,12 +281,12 @@ _l2:     STA $A000,Y
          STA $BF00,Y
          INY
          BNE _l2
-GRONDONE: RTS
+GFX_ONDONE: RTS
 
 ; ======================================================== 
-; GROFF -- Restore old values if graphics are on.
+; GFX_OFF -- Restore old values if graphics are on.
 ; ======================================================== 
-GROFF:    
+GFX_OFF:    
 
         LDA $DD02        ;Set the data direction regs
         ORA #$03
@@ -309,12 +306,12 @@ GDONE:    RTS
 
 ; ======================================================== 
 ;
-; SETCOLOR -- Set drawing color
+; GFX_SETCOLOR -- Set drawing color
 ;   .A = 0 -> background color
 ;   .A = 1 -> foreground color
 ;
 ; ======================================================== 
-SETCOLOR: 
+GFX_SETCOLOR: 
 COLENT:   CMP #00          ;MODE enters here
          BEQ _C2
 _C1      CMP #01
@@ -329,7 +326,7 @@ BITTAB:   .byte $80,$40,$20,$10,$08,$04,$02,$01
 
 
 ; ======================================================== 
-; Drawin' a line.  A fahn lahn.
+; Drawin' a GFX_LINE.  A fahn lahn.
 ;
 ; To deal with off-screen coordinates, the current row
 ; and column (40x25) is kept track of.  These are set
@@ -343,9 +340,9 @@ OLDCHUNK = X2+1
 
 ; DOTTED -- Set to $01 if doing dotted draws (diligently)
 ; X1,X2 etc. are set up above (x2=LINNUM in particular)
-; Format is LINE x2,y2,x1,y1
+; Format is GFX_LINE x2,y2,x1,y1
 
-LINE:     
+GFX_LINE:     
 
 _CHECK   LDA X2           ;Make sure x1<x2
          SEC
@@ -395,7 +392,7 @@ _DYPOS   STY DY           ;8-bit DY -- FIX ME?
 
          LDA #00
          STA DONTPLOT
-         JSR GPLOT         ;Set up .X,.Y,POINT, and INRANGE
+         JSR GFX_SETPIXEL         ;Set up .X,.Y,POINT, and INRANGE
          INC DONTPLOT
          LDA BITCHUNK,X
          STA OLDCHUNK
@@ -530,7 +527,7 @@ XCONT2:   DEX
          BPL XLOOP
 XDONE:    
          LSR CHUNK        ;Advance to last point
-         JSR LINEPLOT     ;Plot the last chunk
+         JSR GFX_LINEPLOT     ;Plot the last chunk
 EXIT:     LDA #$37
          STA $01
          CLI
@@ -541,7 +538,7 @@ EXIT:     LDA #$37
 ;
 XFIXC:    
          STA TEMP
-         JSR LINEPLOT
+         JSR GFX_LINEPLOT
          LDA #$FF
          STA CHUNK
          STA OLDCHUNK
@@ -578,7 +575,7 @@ XFIXY:
          ADC #$FF         ;Hi byte
          STA Y1
 
-         JSR LINEPLOT     ;Plot chunk
+         JSR GFX_LINEPLOT     ;Plot chunk
          LDA CHUNK
          STA OLDCHUNK
 
@@ -595,7 +592,7 @@ XINCDEC:  INY              ;Y-coord
 ; Subroutine to plot chunks/points (to save a little
 ; room, gray hair, etc.)
 ;
-LINEPLOT:                  ;Plot the line chunk
+GFX_LINEPLOT:                  ;Plot the GFX_LINE chunk
 
          LDA INRANGE
          BNE _SKIP
@@ -660,18 +657,18 @@ _TOAST   PLA              ;Remove old return address
          JMP EXIT         ;Restore interrupts, etc.
 ; ======================================================== 
 ;
-; CIRCLE draws a circle of course, using my
+; GFX_CIRCLE draws a GFX_CIRCLE of course, using my
 ; super-sneaky algorithm.
 ;
-; Center of circle is at x1,y1
-; Radius of circle in RADIUS
+; Center of GFX_CIRCLE is at x1,y1
+; Radius of GFX_CIRCLE in RADIUS
 ;
 ; ======================================================== 
-CIRCLE:   
+GFX_CIRCLE:   
          LDA RADIUS
          STA Y
          BNE _c1
-         JMP GPLOT         ;Plot as a point
+         JMP GFX_SETPIXEL         ;Plot as a point
 _c1      
          CLC
          ADC Y1
@@ -680,7 +677,7 @@ _c1
          INC Y1+1
 _c2      LDA #00
          STA DONTPLOT
-         JSR GPLOT         ;Compute XC, YC+R
+         JSR GFX_SETPIXEL         ;Compute XC, YC+R
 
          LDA INRANGE      ;Track row/col separately
          STA RANGE1
@@ -718,7 +715,7 @@ _C3      SBC RADIUS
          DEC Y1+1
 _C4      STA Y1
 
-         JSR PLOTABS      ;Compute new coords
+         JSR GFX_PLOTABS      ;Compute new coords
          STY Y1
          LDA POINT
          STA X1           ;X1 will be the backwards
@@ -782,7 +779,7 @@ _CONT4
          CPY Y            ;if y<=x then punt
          BCC _LOOP        ;Now draw the other half
 ;
-; Draw the other half of the circle by exactly reversing
+; Draw the other half of the GFX_CIRCLE by exactly reversing
 ; the above!
 ;
 NEXTHALF: 
@@ -943,7 +940,7 @@ _DONE    TXA
          DEC LCOL
          RTS
 ;
-; Plot right-moving chunk pairs for circle routine
+; Plot right-moving chunk pairs for GFX_CIRCLE routine
 ;
 PCHUNK1:  
 
@@ -975,7 +972,7 @@ _SKIP2
          RTS
 
 ;
-; Plot left-moving chunk pairs for circle routine
+; Plot left-moving chunk pairs for GFX_CIRCLE routine
 ;
 PCHUNK2:  
 
@@ -1156,18 +1153,38 @@ _haveoffset:
     lda ($fb),y
     sta tempwidth
     sta orginalWidth
-    inc $fb
+    
     ; height
     inc $fb
+    lda ($fb),y
+    sta tempheight
+
     ; base
+    inc $fb
+    lda ($fb),y
+    sta tempbase
+
+    ; start of character data
     inc $fb
 
 ; start plotting the character bit rows
 
-    lda Y1                  ; set the Y location for plotting
-    sta tempy
     lda #$00
     sta temprow             ; start with the 0th row
+    
+    lda Y1                  ; set the Y location for plotting
+    sta tempy
+
+    lda tempheight          ; calculate the actual Y position
+    sec
+    sbc tempbase            ; based on height and the baseGFX_LINE
+    sta s1
+    lda #$07
+    sec
+    sbc s1
+    clc
+    adc tempy
+    sta tempy
 
 _again:
     ldy temprow
@@ -1189,7 +1206,7 @@ _incx:
 _skiphi:
     #CopyW tempx, X1        ; Copy tempx/tempx+1 to X1/X1+1
     #CopyW tempy, Y1        ; Copy tempy/tempy+1 to Y1/Y1+1
-    jsr GPLOT               ; plot the pixel
+    jsr GFX_SETPIXEL               ; plot the pixel
     #CopyW orginalX, tempx  ; reset tempx to original val for next bit
 _nextbit:
     clc
@@ -1242,6 +1259,10 @@ temprow:
 orginalWidth:
     .byte $00
 tempwidth:
+    .byte $00
+tempbase:
+    .byte $00
+tempheight:
     .byte $00
 
 ; ======================================================== 

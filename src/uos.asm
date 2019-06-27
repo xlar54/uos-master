@@ -29,8 +29,8 @@
 
 ; BASIC Loader
 
-.byte $0C, $08      ; pointer to next line
-.byte $0A, $00      ; line number (10)
+.byte $0C, $08      ; pointer to next GFX_LINE
+.byte $0A, $00      ; GFX_LINE number (10)
 .byte $9E           ; SYS token
 .text " 2062"       ; SYS address in ASCII
 .byte $00, $00, $00 ; end-of-program

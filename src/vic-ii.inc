@@ -28,15 +28,15 @@ VIC_SPR_XMSb    = $10     ; MSB of the X coordinate (since 320 > 255). Bit 7 = s
 
 VIC_CTRL_1      = $11
 SCROLY			= $11     ; Control register 1
-                          ; Bit 0-2: Offset of the screen border in raster lines
-                          ; Bit 3  : 0=24 lines 1=25 lines
+                          ; Bit 0-2: Offset of the screen border in raster GFX_LINEs
+                          ; Bit 3  : 0=24 GFX_LINEs 1=25 GFX_LINEs
                           ; Bit 4  : 0=screen off
                           ; Bit 5  : 1=standard bitmap mode (graphics)
                           ; Bit 6  : 1=extended color mode (text)
                           ; Bit 7  : Carry from register 18 ($13)
 
-VIC_RASTER      = $12     ; Number of raster line at which a raster IRQ should be generated. 
-                          ; 9th bit of raster line found in reg 17 ($12)
+VIC_RASTER      = $12     ; Number of raster GFX_LINE at which a raster IRQ should be generated. 
+                          ; 9th bit of raster GFX_LINE found in reg 17 ($12)
 VIC_LTPEN_X     = $13     ; X-portion of the screen position at which the beam was found when a strobe was generated (light pen)
 VIC_LTPEN_Y     = $14     ; Y-portion of the screen position at which the beam was found when a strobe was generated (light pen)
 
