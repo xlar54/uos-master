@@ -21,14 +21,21 @@
 APP_START   = $1000
 APP_CLICK   = $1500
 
-GFX_INIT    = $c01b
-GFX_SETPIXEL       = $c036
-GFX_ON        = $c0c9
-GFX_OFF       = $c172
+REU_SIZE        = $1800
+REU_STASH       = $1803
+REU_FETCH       = $1806
+SAVEBITMAP      = $18d0
+FETCHBITMAP     = $18f7
+
+install1        = $9f09
+
+GFX_INIT        = $c01b
+GFX_SETPIXEL    = $c036
+GFX_ON          = $c0c9
+GFX_OFF         = $c172
 GFX_SETCOLOR    = $c18d
 GFX_LINE        = $c1ac
 GFX_CIRCLE      = $c379
-GPUTC       = $c583
-GPUTS       = $c71b
+GPUTC           = $c583
+GPUTS           = $c71b
 
-install1    = $9f09

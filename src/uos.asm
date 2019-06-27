@@ -75,8 +75,14 @@ loadfiles:
         jsr LOADER
 
         JSR LOADIMM
+	    .text "uos-reu",$00
+        jsr LOADER
+
+        JSR LOADIMM
 	    .text "uos-desktop",$00
         jsr LOADER
+
+        
 
 _setup:
         ; set up the graphics and mouse and then jump to the desktop

@@ -30,23 +30,32 @@
         #PenWrite
         #DrawLine 0,189,319,189
         #DrawLine 25, 189, 25, 199
+        
+
+        #Print $00, $05, $bf, menu
+        #Print $01, $17, $bf, time
+
+        
+        jsr SAVEBITMAP
+
+
         #DrawRect 100,70,219,140,1
         #DrawRect 180,120,210,130,0
-
         #Print $00, $70, $50, msg1
         #Print $00, $70, $5b, msg2
         #Print $00, $70, $65, msg3
 
         #Print $00, $bd, $7a, ok
 
-        #Print $00, $05, $bf, menu
-        #Print $01, $17, $bf, time
+        
 
         RTS
 
 * = APP_CLICK
-        #PenErase
-        #DrawRect 100,70,219,140,1
+        ;#PenErase
+        ;#DrawRect 100,70,219,140,1
+
+        jsr FETCHBITMAP
         RTS
 
 ;WAIT     JSR GETIN
