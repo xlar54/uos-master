@@ -6,7 +6,7 @@ of the machines native feature set.
 
 To compile the source:
 
-On a Windows machine, just run the build.bat script.  Ill work on a make file
+Requires latest version of 64TASS. On a Windows machine, just run the build.bat script.  Ill work on a make file
 for other operating systems soon.
 
 Current builds are in the directory also.
