@@ -18,6 +18,71 @@
 ;    along with UOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
+add .macro source
+	clc
+	adc \source
+.endm
+
+sub .macro source
+	sec
+	sbc \source
+.endm
+
+addv .macro value
+	clc
+	adc #\value
+.endm
+
+subv .macro value
+	sec
+	sbc #\value
+.endm
+
+PopB .macro dest
+	pla
+	sta \dest
+.endm
+
+PopW .macro dest
+	PopB \dest+0
+	PopB \dest+1
+.endm
+
+PushB .macro source
+	lda \source
+	pha
+.endm
+
+PushW .macro source
+	PushB \source+1
+	PushB \source+0
+.endm
+
+SubB .macro source, dest
+	lda \dest
+	sub \source
+	sta \dest
+.endm
+
+SubW .macro source, dest
+	SubB \source+0, \dest+0
+	lda \dest+1
+	sbc \source+1
+	sta \dest+1
+.endm
+
+SubVW .macro value, dest
+	sec
+	lda \dest+0
+	sbc #<(\value)
+	sta \dest+0
+	lda \dest+1
+	sbc #>(\value)
+	sta \dest+1
+.endm
+
+
+
 HiresInit .macro
 
     JSR GFX_INIT
@@ -138,6 +203,64 @@ DrawRect .macro x1, y1, x2, y2, shadow
 
 .endm
 
+Button .macro x1, y1, x2, y2
+
+    ; top/bottom 
+    #DrawLine \x1, \y1, \x2, \y1
+    #DrawLine \x1, \y2, \x2, \y2
+
+    ; left / right
+    #DrawLine \x1, \y1, \x1, \y2
+    #DrawLine \x2, \y1, \x2, \y2
+
+    ldy btnPtr
+
+.if \x1 > 255
+    lda #\x1-256
+    sta btnBuffer,y
+    iny
+    lda #$01
+    sta btnBuffer,y
+    iny
+.else
+    lda #\x1
+    sta btnBuffer,y
+    iny
+    lda #$00
+    sta btnBuffer,y
+    iny
+.fi
+
+    lda #\y1
+    sta btnBuffer,y
+    iny
+
+.if \x2 > 255
+    lda #\x2-256
+    sta btnBuffer,y
+    iny
+    lda #$01
+    sta btnBuffer,y
+    iny
+.else
+    lda #\x2
+    sta btnBuffer,y
+    iny
+    lda #$00
+    sta btnBuffer,y
+    iny
+.fi
+
+    lda #\y2
+    sta btnBuffer,y
+    iny
+
+    sty btnPtr
+
+    inc btnCount
+
+.endm
+
 LoadB .macro addr, val
     lda #\val
     sta \addr
@@ -184,9 +307,9 @@ Print .macro x2, x1, y1, msg
     #LoadB X1+1, \x2
     #LoadB Y1, \y1
     lda #<\msg
-    sta r1
+    sta r9L
     lda #>\msg
-    sta r2
+    sta r9H
     jsr GPUTS
 .endm
 

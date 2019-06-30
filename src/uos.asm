@@ -85,18 +85,19 @@ loadfiles:
         
 
 _setup:
+        
         ; set up the graphics and mouse and then jump to the desktop
         jsr install1
 
         #HiresInit
-        #HiresOn VIC_COLOR_DGREY, VIC_COLOR_LGREY
+        #HiresOn VIC_COLOR_BLACK, VIC_COLOR_CYAN
 
         ; enable sprite 0
         lda #$01    
         sta VIC_BASE + VIC_SPR_ENBL
         
         ;color
-        lda #VIC_COLOR_RED  
+        lda #VIC_COLOR_WHITE  
         sta VIC_BASE + VIC_SPR_COL0   
         
         ; sprite 0 data pointer  
@@ -108,20 +109,41 @@ _setup:
         sta VIC_BASE + VIC_SPR0_X
         sta VIC_BASE + VIC_SPR0_Y
 
+        ; point brk vector to our routine
+        lda #<SYSERR
+        sta brkVectorlo
+        lda #>SYSERR
+        sta brkVectorhi
+
+        ; disable basic rom
+        lda #$35
+        sta $01
+
+        ; clear the button / hotspot pointer
+        lda #$00
+        sta btnPtr
+
         jsr APP_START
 
 _mainloop:
-
         ;read input driver
         lda $dc01
-        and #%00010000
+        and #$10
         beq _btnclick
         jmp _next
 
 _btnclick:
+        jsr TESTCLICK
+        bne _goodclick
+        jmp _next
+_goodclick:
         jsr APP_CLICK
-
+_waitforrelease:
+        lda $dc01
+        and #$10
+        beq _waitforrelease
 _next
+        lda #$01
         jmp _mainloop
 
 TOBASIC:
@@ -131,8 +153,6 @@ TOBASIC:
         lda #$01    
         sta VIC_BASE + VIC_SPR_ENBL
         RTS
-
-
 
 LOADER:
 ; Equivalent to LOAD"file",8,1
@@ -177,9 +197,6 @@ _error
 
 ftmp:   .byte $00
 file:   .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-files:  .TEXT "uos-gfx", $00
-        .TEXT "uos-drv1351", $00
-        .byte $00
 
 
 LOADIMM:
@@ -225,7 +242,118 @@ LOADIMM3:
 	PLA  			; restore A
 	RTS
 
+TESTCLICK:
+        ldx #$00
+        lda btnCount
+        sta r1
+_loopbtns:
+        bne _x1a
+_nobutton:
+        jmp _badclick
 
+        ; check if click is on button
+_x1a:
+        lda VIC_BASE + VIC_SPR0_X
+        sec
+        sbc #$18
+        clc
+        cmp btnBuffer,x
+        bcc _fardone1
 
+_x1b:
+        inx
+        lda VIC_BASE + VIC_SPR_XMSb
+        and #%00000001
+        cmp btnBuffer,x
+        beq _y1
+_fardone1:
+        jmp _badclick
+_y1:
+        inx
+        lda VIC_BASE + VIC_SPR0_Y
+        sec
+        sbc #$32
+        clc
+        cmp btnBuffer,x
+        bcs _x2a
+        jmp _badclick
 
+_x2a:
+        inx
+        lda VIC_BASE + VIC_SPR0_X
+        sec
+        sbc #$18
+        sec
+        cmp btnBuffer,x
+        bcs _fardone2
+_x2b:
+        inx
+        lda VIC_BASE + VIC_SPR_XMSb
+        and #%00000001
+        cmp btnBuffer,x
+        beq _y2
+_fardone2:
+        jmp _badclick
+_y2:
+        inx
+        lda VIC_BASE + VIC_SPR0_Y
+        sec
+        sbc #$32
+        sec
+        cmp btnBuffer,x
+        bcc _goodclick
+        jmp _badclick       
 
+        dec r1
+        jmp _loopbtns
+
+_goodclick:
+        lda #$01
+        rts
+_badclick:
+        lda #$00
+        rts 
+
+SYSERR:
+        pla 
+        pla 
+        pla
+        pla
+        PopW r0
+        SubVW 2, r0
+        lda r0H
+        ldx #0
+	jsr er1
+        lda r0L
+	jsr er1
+        #DrawRect 100,70,219,140,1
+        #Print $00, $70, $50, Panic_Str
+_forever:
+        jmp _forever
+
+er1:	pha
+	lsr
+	lsr
+	lsr
+	lsr
+	jsr er2
+	inx
+	pla
+	and #%00001111
+	jsr er2
+	inx
+	rts
+er2:	cmp #10
+	bcs er3
+	addv '0'
+	bne er4
+er3:	addv '0'+7
+er4:	sta PanicAddr,x
+	rts
+
+Panic_Str:
+        .text "Error near "
+        .byte "$"
+PanicAddr:
+	.text "xxxx"
+	.byte $00

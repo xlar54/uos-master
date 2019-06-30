@@ -56,6 +56,8 @@ TEMP     = $20            ;1 byte
          JMP GFX_PLOTABS
          JMP GFX_LINE
          JMP GFX_CIRCLE
+         JMP GPUTC
+         JMP GPUTS
 
 ; ======================================================== 
 ;
@@ -460,7 +462,7 @@ YCONT2:   LDA (POINT),Y    ;Plot endpoint
          AND CHUNK
          EOR (POINT),Y
          STA (POINT),Y
-YDONE:    
+YDONE:   
          LDA #$37
          STA $01
          CLI
@@ -528,7 +530,8 @@ XCONT2:   DEX
 XDONE:    
          LSR CHUNK        ;Advance to last point
          JSR GFX_LINEPLOT     ;Plot the last chunk
-EXIT:     LDA #$37
+EXIT:   
+        LDA #$37
          STA $01
          CLI
          RTS
@@ -1036,136 +1039,89 @@ _stash:
     
 
 _getoffset:
-    ; get character offset
-    lda #<font
-    sta $fb
-    lda #>font
-    sta $fc
-
-    lda tempchar
-    
-    ; TODO: needs optimized
     ; get the font offset for the character
     ; $fb, $fc will contain the offset to the character
 
-_loop1:
-    beq _skip0
-    jmp _offset1
-_skip0:
-    jmp _haveoffset
+    lda tempchar
 
-_offset1:
-    clc
-    inc $fb
-    beq _addhibyte1
-    jmp _offset2
-_addhibyte1:
-    inc $fc
-
-_offset2:
-    clc
-    inc $fb
-    beq _addhibyte2
-    jmp _offset3
-_addhibyte2:
-    inc $fc
-
-_offset3:
-    clc
-    inc $fb
-    beq _addhibyte3
-    jmp _offset4
-_addhibyte3:
-    inc $fc
-
-_offset4:
-    clc
-    inc $fb
-    beq _addhibyte4
-    jmp _offset5
-_addhibyte4:
-    inc $fc
-
-_offset5:
-    clc
-    inc $fb
-    beq _addhibyte5
-    jmp _offset6
-_addhibyte5:
-    inc $fc
-
-_offset6:
-    clc
-    inc $fb
-    beq _addhibyte6
-    jmp _offset7
-_addhibyte6:
-    inc $fc
-
-_offset7:
-    clc
-    inc $fb
-    beq _addhibyte7
-    jmp _offset8
-_addhibyte7:
-    inc $fc
-
-_offset8:
-    clc
-    inc $fb
-    beq _addhibyte8
-    jmp _offset9
-_addhibyte8:
-    inc $fc
-
-_offset9:
-    clc
-    inc $fb
-    beq _addhibyte9
-    jmp _offset10
-_addhibyte9:
-    inc $fc
-
-_offset10:
-    clc
-    inc $fb
-    beq _addhibyte10
-    jmp _offset11
-_addhibyte10:
-    inc $fc
-
-_offset11:
-    clc
-    inc $fb
-    beq _addhibyte11
-    jmp _iterate
-_addhibyte11:
-    inc $fc
-
-_iterate:
+    ; split the search up for speed
+    cmp #32
+    bcc _srch1         ; less than 32?
+    cmp #63
+    bcc _srch2         ; less than 63?
+    jmp _srch3
+_srch1:
+    ; search 1st set of font data
+    lda #<font1
+    sta $fb
+    lda #>font1
+    sta $fc
+    jmp _srchagain
+_srch2:
+    ; search 2nd set of font data
+    lda tempchar
     sec
-    sbc #$01
-    jmp _loop1
+    sbc #$1f
+    sta tempchar
+    lda #<font2
+    sta $fb
+    lda #>font2
+    sta $fc
+    jmp _srchagain
+_srch3:
+    ; search 3rd set of font data
+    lda tempchar
+    sec
+    sbc #$3e
+    sta tempchar
+    lda #<font3
+    sta $fb
+    lda #>font3
+    sta $fc
+_srchagain:
+    ldy #$00
+_srchloop:
+    cpy tempchar
+    beq _haveoffset
+    iny
+    lda $fb
+    clc
+    adc #$0b
+    sta $fb
+    bcs _srchskip
+    jmp _srchloop
+_srchskip:
+    inc $fc
+    jmp _srchloop
 
 _haveoffset:
     ; get width
     ldy #$00
     lda ($fb),y
-    sta tempwidth
-    sta orginalWidth
+    sta widthctr
+    sta orgWidth
     
     ; height
     inc $fb
+    bne _skipfc1
+    inc $fc
+_skipfc1:
     lda ($fb),y
     sta tempheight
 
     ; base
     inc $fb
+    bne _skipfc2
+    inc $fc
+_skipfc2
     lda ($fb),y
     sta tempbase
 
     ; start of character data
     inc $fb
+    bne _skipfc3
+    inc $fc
+_skipfc3:
 
 ; start plotting the character bit rows
 
@@ -1211,7 +1167,7 @@ _skiphi:
 _nextbit:
     clc
     ror bitcompare          ; rotate the next bit into position for testing
-    dec tempwidth           ; decrease the width counter
+    dec widthctr           ; decrease the width counter
     beq _endrow
     ;bcs _endrow             ; (but if zero, we are done)
     inc xoffset             ; increase the plotting xoffset value since each bit represents the next pixel
@@ -1222,8 +1178,8 @@ _endrow:
     lda #$00
     sta xoffset
 
-    lda orginalWidth        ; reset the width counter
-    sta tempwidth
+    lda orgWidth        ; reset the width counter
+    sta widthctr
 
     inc temprow             ; increase the row counter
     lda temprow
@@ -1236,6 +1192,7 @@ _endrow:
 
 _end:
     #CopyW orginalY, Y1
+    #CopyW orginalX, X1
     rts
 
 bitcompare:
@@ -1256,9 +1213,9 @@ tempy:
     .byte $00, $00
 temprow:
     .byte $00
-orginalWidth:
+orgWidth:
     .byte $00
-tempwidth:
+widthctr:
     .byte $00
 tempbase:
     .byte $00
@@ -1276,7 +1233,7 @@ tempheight:
 GPUTS:
     ldy #$00
 _loop:
-    lda (r1),y
+    lda (r9L),y
     beq _done
     TAX
     TYA
@@ -1285,16 +1242,21 @@ _loop:
     jsr GPUTC
     PLA
     tay
-    inc X1
-    inc X1
+    
+    inc orgWidth
+
+    ; move to next rendering x coord
+_moveright:
     inc X1
     bne _skip
     lda #$01
     sta X1+1
 _skip:
-    iny 
+    dec orgWidth
+    bne _moveright
+    iny                 ; go to next character
     jmp _loop
-
+                     
 _done:
     rts
 
@@ -1305,7 +1267,7 @@ cursorx:
 cursory:
     .byte $00, $00
 
-font:
+font1:
 .byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
 .byte $01, $07, $00, $80, $80, $80, $80, $00, $80, $80, $00 ; !
 .byte $03, $02, $00, $A0, $A0, $00, $00, $00, $00, $00, $00 ; "
@@ -1337,9 +1299,9 @@ font:
 .byte $03, $06, $00, $00, $20, $40, $80, $40, $20, $00, $00 ; <
 .byte $04, $06, $00, $00, $F0, $00, $F0, $00, $00, $00, $00 ; =
 .byte $03, $06, $00, $00, $80, $40, $20, $40, $80, $00, $00 ; >
+font2:
 .byte $05, $07, $00, $70, $88, $10, $20, $20, $00, $20, $00 ; ?
 .byte $05, $07, $00, $70, $88, $B8, $A8, $B8, $80, $70, $00 ; @
-
 .byte $04, $05, $00, $70, $90, $90, $90, $50, $00, $00, $00 ;a
 .byte $04, $07, $00, $80, $80, $E0, $90, $90, $90, $E0, $00 ;b
 .byte $04, $05, $00, $60, $90, $80, $80, $70, $00, $00, $00 ;c
@@ -1366,14 +1328,13 @@ font:
 .byte $05, $05, $00, $88, $50, $20, $50, $88, $00, $00, $00 ;x
 .byte $04, $07, $02, $90, $90, $90, $90, $70, $10, $20, $00 ;y
 .byte $04, $05, $00, $F0, $20, $40, $80, $F0, $00, $00, $00 ;z
-
 .byte $02, $07, $00, $C0, $80, $80, $80, $80, $80, $C0, $00 ; [
 .byte $07, $07, $00, $80, $40, $20, $10, $08, $04, $02, $00 ; slash
 .byte $02, $07, $00, $C0, $40, $40, $40, $40, $40, $C0, $00 ; ]
+font3:
 .byte $05, $07, $00, $20, $50, $88, $00, $00, $00, $00, $00 ; ^
 .byte $05, $01, $00, $F8, $00, $00, $00, $00, $00, $00, $00 ; _
 .byte $02, $07, $00, $80, $80, $40, $00, $00, $00, $00, $00 ; `
-
 .byte $05, $07, $00, $20, $50, $88, $88, $F8, $88, $88, $00 ;A
 .byte $04, $07, $00, $E0, $90, $90, $E0, $90, $90, $E0, $00 ;B
 .byte $04, $07, $00, $60, $90, $80, $80, $80, $80, $70, $00 ;C
@@ -1400,5 +1361,4 @@ font:
 .byte $05, $07, $00, $88, $88, $50, $20, $50, $88, $88, $00 ;X
 .byte $05, $07, $00, $88, $88, $88, $50, $20, $20, $20, $00 ;Y
 .byte $07, $07, $00, $F8, $08, $10, $20, $40, $80, $F8, $00 ;Z
-
 .byte $04, $07, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff ; rvs space
