@@ -148,10 +148,6 @@ setup:
         lda #$35
         sta $01
 
-        ; clear button click register
-        lda #$00
-        sta r16
-        
         ; start the application
         jsr APP_START
 
