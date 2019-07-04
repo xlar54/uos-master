@@ -242,6 +242,17 @@ DrawRect .macro x1, y1, x2, y2, shadow
 
 .endm
 
+ClearRect .macro x1, y1, x2, y2
+    #PenErase
+
+.for y := \y1, y <= \y2, y := y + 1
+    #DrawLine \x1, y, \x2, y
+.next
+
+    #PenWrite
+
+.endm
+
 CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2
 
     ; top/bottom 

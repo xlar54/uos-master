@@ -44,15 +44,17 @@
 ; Initialize the system
 ; ==========================================================
 START:
-        LDA #$92	; Load clock registers with inital time
+        LDA #$01	; Load clock registers with inital time
 	STA $DC0B	; Store 12 in hour  (Bit 7=PM)
-	LDA #$00
+	LDA #$54
 	STA $DC0A	; Store 0 in minutes
 	LDA #$00
 	STA $DC09	; Store 0 in seconds
 	LDA #$00
 	STA $DC08	; Store 0 in tenth of a second
 			; Clock starts after writing to this register
+        lda #$01
+        sta r16         ; second register test
 
         lda #$00
         sta VIC_BASE + VIC_BORDER_COL
@@ -155,6 +157,8 @@ setup:
 ; Main input waiting loop
 ; ==========================================================
 main_loop:
+        jsr TICK
+
         ;read input driver
         lda $dc01
         and #$10
@@ -443,6 +447,14 @@ _badclick:
 ; Uses cassette buffer for app registered callbacks 
 ; ==========================================================
 TICK:
+        lda r16
+        ; check if a second has passed
+        cmp $DC09
+        bne _tick
+        jmp _skip
+_tick:
+        lda $DC09
+        sta r16
         lda $033d
         beq _skip
         jmp ($033c)

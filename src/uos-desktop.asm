@@ -28,6 +28,10 @@
 * = APP_START
 
         #RegisterApp
+        lda #<APP_TICK
+        sta $033c
+        lda #>APP_TICK
+        sta $033d
 
         #PenWrite
         #DrawLine 0,189,319,189
@@ -40,6 +44,86 @@
         jsr SAVEBITMAP
 
         RTS
+
+APP_TICK = *
+        ;inc VIC_BASE + VIC_BORDER_COL
+        lda minute
+        cmp $dc0a
+        bne _updateclock
+        jmp _done
+_updateclock:
+        lda $dc0a
+        sta minute
+        #ClearRect 269, 191, 319, 199
+        ldy #$00
+        lda $dc0b       ; hour (tens)
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+        iny
+        lda $dc0b       ; hour (ones)
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+        iny
+        lda #':'
+        sta time,y
+        iny
+        lda $dc0a       ; mins (tens)
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+        iny
+        lda $dc0a       ; mins (ones)
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+.comment
+        iny
+        lda #':'
+        sta time,y
+        iny
+        lda $dc09       ; secs (tens)
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc 
+        ror
+        clc
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+        iny
+        lda $dc09       ; secs (ones)
+        and #$0f
+        adc #$30        ; convert to petscii
+        sta time,y
+.endc
+
+        lda $dc08       ; tod has stopped since we read the hour value
+        sta $dc08       ; writing to the 10th/sec value restarts tod
+
+        #Text 269, 191, time
+_done:
+        rts
 
 WIN_OK = *
         jsr FETCHBITMAP
@@ -163,7 +247,8 @@ mnu_settings:   .text "settings", $00
 mnu_cmdline:    .text "command line", $00
 mnu_main:       .text "ultos", $00
 
-time:           .text "8:34 PM", $00
+time:           .text "12:00 PM", $00
+clrtime:        .text "        ", $00
 
 yes:    .text "Yes", $00
 no:     .text "No", $00
@@ -171,4 +256,7 @@ ok:     .text "Ok", $00
 cancel: .text "Cancel", $00
 
 menuopen:
+        .byte $00
+
+minute:
         .byte $00

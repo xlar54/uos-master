@@ -21,8 +21,8 @@
 brkVectorlo     = $0316
 brkVectorhi     = $0317
 
-MAINLOOP        = $08f0
-FIND_CTL        = $090f
+MAINLOOP        = $0811
+FIND_CTL        = $0814
 
 APP_START       = $1000
 APP_END         = $8fff
