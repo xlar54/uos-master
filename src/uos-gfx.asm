@@ -1134,10 +1134,10 @@ _skipfc3:
     lda tempheight          ; calculate the actual Y position
     sec
     sbc tempbase            ; based on height and the baseGFX_LINE
-    sta s1
+    sta r8
     lda #$07
     sec
-    sbc s1
+    sbc r8
     clc
     adc tempy
     sta tempy
