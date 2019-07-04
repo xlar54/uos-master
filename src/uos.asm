@@ -26,9 +26,9 @@
 
 
 * = $0801    ;start of BASIC area
-
+; ==========================================================
 ; BASIC Loader
-
+; ==========================================================
 .byte $0C, $08      ; pointer to next GFX_LINE
 .byte $0A, $00      ; GFX_LINE number (10)
 .byte $9E           ; SYS token
@@ -39,6 +39,10 @@
         jmp main_loop   ; main loop entry
         jmp find_control
 
+; ==========================================================
+; START
+; Initialize the system
+; ==========================================================
 START:
         LDA #$92	; Load clock registers with inital time
 	STA $DC0B	; Store 12 in hour  (Bit 7=PM)
@@ -75,6 +79,10 @@ _prdone:
 
 msg1:   .text "booting system...", $0d, $00
 
+; ==========================================================
+; Load Files
+; Load the ML subsystems, base drivers, and data
+; ==========================================================
 loadfiles:
         JSR LOADIMM
 	    .text "uos-gfx",$00
@@ -96,6 +104,10 @@ loadfiles:
 	    .text "uos-desktop",$00
         jsr LOADER
 
+; ==========================================================
+; Setup
+; Various post loading initialization code
+; ==========================================================
 setup:
         ; clear app id table
         lda #$ff 
