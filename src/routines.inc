@@ -18,16 +18,27 @@
 ;    along with UOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
-APP_START   = $1000
-APP_CLICK   = $1500
+brkVectorlo     = $0316
+brkVectorhi     = $0317
 
-install1        = $9f09
+MAINLOOP        = $08ec
+FIND_CTL        = $08f8
+
+APP_START       = $1000
+APP_END         = $8fff
+
+APP_CTL_TBL     = $9000
+APP_CTL_CTR     = $9000
+APP_CTL_BUF     = $9001
+APP_ID_TBL      = $9b00
 
 REU_SIZE        = $9c00
 REU_STASH       = $9c03
 REU_FETCH       = $9c06
 SAVEBITMAP      = $9c09
 FETCHBITMAP     = $9c0c
+
+INIT_MOUSE      = $9f00
 
 GFX_INIT        = $c000
 GFX_SETPIXEL    = $c00f

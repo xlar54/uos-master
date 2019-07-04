@@ -106,9 +106,6 @@ a9H             =       $7f
 
 s1          = $10
 s2          = $11
-btnPtr      = $13
-btnCount    = $0334
-btnBuffer   = $0335
 
-brkVectorlo = $0316
-brkVectorhi = $0317
+
+btnPtr      = $13

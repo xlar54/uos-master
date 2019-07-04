@@ -85,9 +85,14 @@ loadfiles:
         
 
 _setup:
-        
-        ; set up the graphics and mouse and then jump to the desktop
-        jsr install1
+        ; clear app id table
+        lda #$ff 
+        sta APP_ID_TBL
+
+        jsr SETUP_CTL_BUF
+
+        ; set up the mouse irq
+        jsr INIT_MOUSE
 
         #HiresInit
         #HiresOn VIC_COLOR_BLACK, VIC_COLOR_CYAN
@@ -123,6 +128,7 @@ _setup:
         lda #$00
         sta btnPtr
 
+        
         jsr APP_START
 
 _mainloop:
@@ -137,7 +143,7 @@ _btnclick:
         bne _goodclick
         jmp _next
 _goodclick:
-        jsr APP_CLICK
+        jmp (r4L)
 _waitforrelease:
         lda $dc01
         and #$10
@@ -145,6 +151,66 @@ _waitforrelease:
 _next
         lda #$01
         jmp _mainloop
+
+; ==========================================================
+; r1 = app id to find 
+; r2 = control id to find
+;
+; returns
+; r3H = high address of control
+; r3L = lo address of control
+; ==========================================================
+_find_control:
+        lda #<APP_CTL_BUF
+        sta r3L
+        lda #>APP_CTL_BUF
+        sta r3H
+
+        ldy #$00
+        ldx #$00
+ _loop:
+        lda r3H
+        cmp #>APP_ID_TBL
+        beq _notfound  
+_skip:
+        lda (r3),y      
+        cmp r1         ; check app id
+        beq _foundappid
+        bne _skip9
+
+_foundappid:
+        iny
+        lda (r3),y      ; get 1st byte
+        cmp r2         ; compare to the id we want
+        beq _foundctlid
+        dey             ; not same app id
+        lda r3L
+        clc
+        adc #$0a        ; skip 10 bytes
+        bcc _cont
+        inc r3H         ; if so, increase hi byte
+_cont:
+        sta r3L         ; increase lo byte
+        jmp _loop       ; do it again
+
+_skip9:
+        lda r3L
+        clc
+        adc #$0a
+        bcc _cont2
+        inc r3H         ; if so, increase hi byte
+_cont2:
+        sta r3L         ; increase lo byte
+        jmp _loop       ; do checks again
+
+_foundctlid:
+        rts
+        
+_notfound:
+        lda #$00
+        sta r3H
+        sta r3L
+        rts
 
 TOBASIC:
 
@@ -244,12 +310,29 @@ LOADIMM3:
 
 TESTCLICK:
         ldx #$00
-        lda btnCount
+        lda APP_CTL_CTR
         sta r1
+
 _loopbtns:
-        bne _x1a
-_nobutton:
+        bne _storemeta
         jmp _badclick
+
+_storemeta:
+
+        ; get app id
+        lda APP_CTL_BUF,x
+        sta r2
+
+        ; get button id
+        lda APP_CTL_BUF+1,x
+        sta r3
+
+        ; get callback address
+        lda APP_CTL_BUF+2, x
+        sta r4L
+
+        lda APP_CTL_BUF+3, x
+        sta r4H
 
         ; check if click is on button
 _x1a:
@@ -257,53 +340,59 @@ _x1a:
         sec
         sbc #$18
         clc
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+4,x
         bcc _fardone1
 
 _x1b:
-        inx
         lda VIC_BASE + VIC_SPR_XMSb
         and #%00000001
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+5,x
         beq _y1
 _fardone1:
-        jmp _badclick
+        jmp _checknextbtn 
 _y1:
-        inx
         lda VIC_BASE + VIC_SPR0_Y
         sec
         sbc #$32
         clc
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+6,x
         bcs _x2a
-        jmp _badclick
+        jmp _checknextbtn 
 
 _x2a:
-        inx
         lda VIC_BASE + VIC_SPR0_X
         sec
         sbc #$18
         sec
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+7,x
         bcs _fardone2
 _x2b:
-        inx
         lda VIC_BASE + VIC_SPR_XMSb
         and #%00000001
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+8,x
         beq _y2
 _fardone2:
-        jmp _badclick
+        jmp _checknextbtn 
 _y2:
-        inx
         lda VIC_BASE + VIC_SPR0_Y
         sec
         sbc #$32
         sec
-        cmp btnBuffer,x
+        cmp APP_CTL_BUF+9,x
         bcc _goodclick
-        jmp _badclick       
+        ;jmp _checknextbtn       
 
+_checknextbtn
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
+        inx
         dec r1
         jmp _loopbtns
 
@@ -327,7 +416,7 @@ SYSERR:
         lda r0L
 	jsr er1
         #DrawRect 100,70,219,140,1
-        #Print $00, $70, $50, Panic_Str
+        #Text $00, $70, $50, panicstr
 _forever:
         jmp _forever
 
@@ -348,12 +437,87 @@ er2:	cmp #10
 	addv '0'
 	bne er4
 er3:	addv '0'+7
-er4:	sta PanicAddr,x
+er4:	sta panicaddr,x
 	rts
 
-Panic_Str:
+panicstr:
         .text "Error near "
         .byte "$"
-PanicAddr:
+panicaddr:
 	.text "xxxx"
 	.byte $00
+
+
+SETUP_CTL_BUF:
+        lda #<APP_CTL_BUF
+        sta r1L
+        lda #>APP_CTL_BUF
+        sta r1H
+
+        lda #>APP_ID_TBL
+        sta r2
+
+        ldy #$00
+        ldx #$00
+ _loop:
+        
+_skip:
+        lda #$ff        ; set app id to $ff
+        sta (r1L),y
+        
+        inc r1L
+        jsr _addhi
+        lda #$ff        ; set ctl id to $ff
+        sta (r1L),y
+
+        inc r1L
+        jsr _addhi
+        lda #$00 
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+        inc r1L
+        jsr _addhi
+        sta (r1L),y
+
+        jmp _loop
+
+ _addhi:
+        bne _cont
+        inc r1H
+        lda r1H        ; if we have reached the end
+        cmp r2         ; of control table, exit
+        beq _return
+        lda #$00
+        sta r1L
+_cont:
+        rts
+_return:
+        pla             ; break out of inner loop
+        pla
+        rts
+
+
+
+
+
+        

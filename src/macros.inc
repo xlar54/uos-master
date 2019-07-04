@@ -81,7 +81,46 @@ SubVW .macro value, dest
 	sta \dest+1
 .endm
 
+LoadB .macro addr, val
+    lda #\val
+    sta \addr
+.endm
 
+CopyW .macro src, dest
+    lda \src
+    sta \dest
+    lda \src+1
+    sta \dest+1
+.endm
+
+AddW .macro addr1, addr2
+    lda \addr1
+    clc
+    adc \addr2
+    sta \addr2
+    bcs _inchi
+    jmp _skip
+_inchi:
+    inc \addr2+1
+_skip:
+    nop
+.endm
+
+AddX .macro val
+
+    lda tempx
+    clc
+    adc #\val
+    bcs _incx
+    sta tempx
+    jmp _endm
+_incx:
+    sta tempx
+    lda #$01
+    sta tempx+1
+_endm:
+    nop
+.endm
 
 HiresInit .macro
 
@@ -203,7 +242,7 @@ DrawRect .macro x1, y1, x2, y2, shadow
 
 .endm
 
-Button .macro x1, y1, x2, y2
+CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2
 
     ; top/bottom 
     #DrawLine \x1, \y1, \x2, \y1
@@ -213,96 +252,100 @@ Button .macro x1, y1, x2, y2
     #DrawLine \x1, \y1, \x1, \y2
     #DrawLine \x2, \y1, \x2, \y2
 
-    ldy btnPtr
+    ; find spot for control
+    lda #$ff
+    sta r1
+    sta r2
+    jsr FIND_CTL
+
+    ; store the app id
+    ldy #$00
+    lda #\appid
+    sta (r3),y
+    iny
+
+    ; store the button id
+    lda #\btnid
+    sta (r3),y
+    iny
+
+    ; store the callback address
+    lda #\lo
+    sta (r3),y
+    iny
+
+    lda #\hi
+    sta (r3),y
+    iny
+
+    ; store x/y
 
 .if \x1 > 255
     lda #\x1-256
-    sta btnBuffer,y
+    sta (r3),y
     iny
     lda #$01
-    sta btnBuffer,y
+    sta (r3),y
     iny
 .else
     lda #\x1
-    sta btnBuffer,y
+    sta (r3),y
     iny
     lda #$00
-    sta btnBuffer,y
+    sta (r3),y
     iny
 .fi
 
     lda #\y1
-    sta btnBuffer,y
+    sta (r3),y
     iny
 
 .if \x2 > 255
     lda #\x2-256
-    sta btnBuffer,y
+    sta (r3),y
     iny
     lda #$01
-    sta btnBuffer,y
+    sta (r3),y
     iny
 .else
     lda #\x2
-    sta btnBuffer,y
+    sta (r3),y
     iny
     lda #$00
-    sta btnBuffer,y
+    sta (r3),y
     iny
 .fi
 
     lda #\y2
-    sta btnBuffer,y
+    sta (r3),y
     iny
 
-    sty btnPtr
-
-    inc btnCount
+    inc APP_CTL_CTR
 
 .endm
 
-LoadB .macro addr, val
-    lda #\val
-    sta \addr
+RemoveButton .macro appId, btnId
+
+    lda #\appId
+    sta r1
+    lda #\btnId
+    sta r2
+    jsr FIND_CTL
+    lda r3H
+    beq _didntfindit
+    ldy #$00
+    lda #$ff
+    sta (r3),y
+    iny
+    sta (r3),y
+    dec APP_CTL_CTR
+_didntfindit:
+
 .endm
 
-CopyW .macro src, dest
-    lda \src
-    sta \dest
-    lda \src+1
-    sta \dest+1
-.endm
 
-AddW .macro addr1, addr2
-    lda \addr1
-    clc
-    adc \addr2
-    sta \addr2
-    bcs _inchi
-    jmp _skip
-_inchi:
-    inc \addr2+1
-_skip:
-    nop
-.endm
 
-AddX .macro val
-
-    lda tempx
-    clc
-    adc #\val
-    bcs _incx
-    sta tempx
-    jmp _endm
-_incx:
-    sta tempx
-    lda #$01
-    sta tempx+1
-_endm:
-    nop
-.endm
-
-Print .macro x2, x1, y1, msg
+Text .macro x2, x1, y1, msg
     #LoadB X1, \x1
     #LoadB X1+1, \x2
     #LoadB Y1, \y1
@@ -311,5 +354,10 @@ Print .macro x2, x1, y1, msg
     lda #>\msg
     sta r9H
     jsr GPUTS
+.endm
+
+RegisterApp .macro
+    inc APP_ID_TBL
+    lda APP_ID_TBL
 .endm
 
