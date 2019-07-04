@@ -33,9 +33,9 @@
         #DrawLine 0,189,319,189
         
         #CreateButton 0, 0, <MNU_ULTOS, >MNU_ULTOS, 0,189,30,199
-        #Text $00, $05, $bf, menu
+        #Text 5, 191, mnu_main
         
-        #Text $01, $17, $bf, time
+        #Text 279, 191, time
         
         jsr SAVEBITMAP
 
@@ -46,52 +46,73 @@ WIN_OK = *
         #RemoveButton 0,1
         jmp MAINLOOP
 
-MNU_FILEMGR = *
-        jsr _closemenu
+MENU_FILEMGR = *
+        jsr closemenu
         #DrawRect 100,70,219,140,1       
-        #Text $00, $70, $50, mnu1
+        #Text 112, 80, dlg_fileman
 
         #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
-        #Text $00, $bd, $7a, ok
+        #Text 189, 122, ok
 
         jmp MAINLOOP
 
-MNU_SETTINGS = *
-        jsr _closemenu
+MENU_SETTINGS = *
+        jsr closemenu
         #DrawRect 100,70,219,140,1       
-        #Text $00, $70, $50, mnu2
+        #Text 112, 80, dlg_settings
 
         #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
-        #Text $00, $bd, $7a, ok
+        #Text 189, 122, ok
 
         jmp MAINLOOP
 
-MNU_CMDLN = *
-        jsr _closemenu
+MENU_CMDLN = *
+        jsr closemenu
         #DrawRect 100,70,219,140,1       
-        #Text $00, $70, $50, mnu3
+        #Text 112, 80, dlg_cmd
 
         #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
-        #Text $00, $bd, $7a, ok
+        #Text 189, 122, ok
 
         jmp MAINLOOP
 
-MNU_QUIT = *
-        jsr _closemenu
+MENU_QUIT = *
+        jsr closemenu
         #DrawRect 100,70,219,140,1       
-        #Text $00, $70, $50, mnu4
+        #Text 112, 80, dlg_quit
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
-        #Text $00, $bd, $7a, ok
+        top := 120
+        left := 180
+        width := 30
+        height := 10
+        #CreateButton 0,1,<QUIT_YES, >QUIT_YES, left, top, left + width, top + height
+        #Text 189, 122, yes
+
+        top := 120
+        left := 140
+        width := 30
+        height := 10
+        #CreateButton 0,2,<QUIT_NO, >QUIT_NO, left, top, left + width, top + height
+        #Text 148, 122, no 
 
         jmp MAINLOOP
+
+QUIT_YES:
+        jmp $fce2
+
+QUIT_NO:
+        jsr FETCHBITMAP
+        #RemoveButton 0,1
+        #RemoveButton 0,2
+        jmp MAINLOOP
+
 
 MNU_ULTOS = *
         lda menuopen
         beq _openmenu
 
 _farclosemenu:
-        jsr _closemenu
+        jsr closemenu
         jmp MAINLOOP
 
 _openmenu:
@@ -99,22 +120,23 @@ _openmenu:
         lda #$01
         sta menuopen
         
-        yoffset := 14
+        height := 14
+        left := 0
         width := 75
-        menuTopY := 119
+        top := 119
 
-        #CreateButton 0, 1, <MNU_FILEMGR,  >MNU_FILEMGR, 0, menuTopY + (yoffset * 1), width, (menuTopY + yoffset) + (yoffset*1)
-        #Text $00, $05, $7b + (yoffset * 1), fileman
-        #CreateButton 0, 2, <MNU_SETTINGS, >MNU_SETTINGS,0, menuTopY + (yoffset * 2), width, (menuTopY + yoffset) + (yoffset*2)
-        #Text $00, $05, $7b + (yoffset * 2), settings
-        #CreateButton 0, 3, <MNU_CMDLN,    >MNU_CMDLN   ,0, menuTopY + (yoffset * 3), width, (menuTopY + yoffset) + (yoffset*3)
-        #Text $00, $05, $7b + (yoffset * 3), cmdline
-        #CreateButton 0, 4, <MNU_QUIT,     >MNU_QUIT    ,0, menuTopY + (yoffset * 4), width, (menuTopY + yoffset) + (yoffset*4)
-        #Text $00, $05, $7b + (yoffset * 4), quit
+        #CreateButton 0, 1, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 1), width, (top + height) + (height*1)
+        #Text left + 5, top + 4 + (height * 1), mnu_fileman
+        #CreateButton 0, 2, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 2), width, (top + height) + (height*2)
+        #Text left + 5, top + 4 + (height * 2), mnu_settings
+        #CreateButton 0, 3, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 3), width, (top + height) + (height*3)
+        #Text left + 5, top + 4 + (height * 3), mnu_cmdline
+        #CreateButton 0, 4, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 4), width, (top + height) + (height*4)
+        #Text left + 5, top + 4 + (height * 4), mnu_quit
 
         jmp MAINLOOP
 
-_closemenu:
+closemenu:
         jsr FETCHBITMAP
 nop
         #RemoveButton 0,1
@@ -130,17 +152,23 @@ nop
 ;         BEQ WAIT
 ;         RTS
 
-mnu1:   .text "File manager", $00
-mnu2:   .text "Settings", $00
-mnu3:   .text "Cmd Line", $00
-mnu4:   .text "Quit", $00
-ok:     .text "OK", $00
-time:   .text "8:34 PM", $00
-quit:   .text "quit", $00
-settings .text "settings", $00
-fileman .text "file manager", $00
-cmdline .text "command line", $00
-menu:   .text "ultos", $00
+dlg_fileman:    .text "File manager", $00
+dlg_settings:   .text "Settings", $00
+dlg_cmd:        .text "Cmd Line", $00
+dlg_quit:       .text "Quit: Are you sure?", $00
+
+mnu_fileman:    .text "file manager", $00
+mnu_quit:       .text "quit", $00
+mnu_settings:   .text "settings", $00
+mnu_cmdline:    .text "command line", $00
+mnu_main:       .text "ultos", $00
+
+time:           .text "8:34 PM", $00
+
+yes:    .text "Yes", $00
+no:     .text "No", $00
+ok:     .text "Ok", $00
+cancel: .text "Cancel", $00
 
 menuopen:
         .byte $00

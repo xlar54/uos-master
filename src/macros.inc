@@ -343,17 +343,32 @@ _didntfindit:
 
 .endm
 
+Text .macro x, y, msg
 
+    ; store x/y
+.if \x > 255
+    lda #\x-256
+    sta X1
+    lda #$01
+    sta X1+1
+    iny
+.else
+    lda #\x
+    sta X1
+    lda #$00
+    sta X1+1
+    iny
+.fi
 
-Text .macro x2, x1, y1, msg
-    #LoadB X1, \x1
-    #LoadB X1+1, \x2
-    #LoadB Y1, \y1
+    lda #\y
+    sta Y1
+
     lda #<\msg
     sta r9L
     lda #>\msg
     sta r9H
     jsr GPUTS
+
 .endm
 
 RegisterApp .macro
