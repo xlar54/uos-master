@@ -58,6 +58,7 @@ TEMP     = $20            ;1 byte
          JMP GFX_CIRCLE
          JMP GPUTC
          JMP GPUTS
+         JMP GFX_DRAWBYTEPATTERN
 
 ; ======================================================== 
 ;
@@ -1006,7 +1007,6 @@ _SKIP    LDA BROW         ;If CY+Y >= 200...
 _SKIP2   
          RTS
 
-
 ; ======================================================== 
 ;
 ; GPUTC
@@ -1260,12 +1260,51 @@ _skip:
 _done:
     rts
 
-
-
 cursorx:
     .byte $00, $00
 cursory:
     .byte $00, $00
+
+; ======================================================== 
+;
+; GFX_DRAWBYTEPATTERN
+;   X1/X2
+;   Y1
+;   r4l = lo of byte address
+;   r4H = hi of byte address 
+;
+; ======================================================== 
+GFX_DRAWBYTEPATTERN:
+
+    ldy #$00
+    ldx #$00
+_loop:
+    cpy #$08
+    beq _done
+    sty tsttmp
+    ldy #$00
+    lda (r4),y
+    ldy tsttmp
+    and tstbit,y
+    cmp tstbit,y
+    bne _skppixl
+    jsr GFX_SETPIXEL
+    ldy tsttmp
+_skppixl:
+    lda X1
+    clc
+    adc #$01
+    sta X1
+    bcc _cont
+    inc X2 
+_cont:
+    iny
+    jmp _loop
+_done:
+    rts
+
+tstbit: .byte $80, $40, $20, $10, $08, $04, $02, $01
+tsttmp: .byte $00
 
 font1:
 .byte $04, $07, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;space
@@ -1362,3 +1401,4 @@ font3:
 .byte $05, $07, $00, $88, $88, $88, $50, $20, $20, $20, $00 ;Y
 .byte $07, $07, $00, $F8, $08, $10, $20, $40, $80, $F8, $00 ;Z
 .byte $04, $07, $00, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff ; rvs space
+

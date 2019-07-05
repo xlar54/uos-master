@@ -178,6 +178,53 @@ SetPixel .macro x, y
         jsr GFX_SETPIXEL
 .endm
 
+DrawImage .macro x, y, width, height, img 
+
+    lda #<\img
+    sta r4L
+    lda #>\img
+    sta r4H
+
+    width := \width / 8
+    height := \height / 2
+    tempx := \x
+    
+    .for ty := 0, ty < height, ty := ty + 1
+
+        .for tx := 0, tx < width, tx := tx + 1
+
+            .if tempx > 255
+                    lda #$01
+                    sta X1+1
+                    lda #tempx-256
+            .else
+                    lda #$00
+                    sta X1+1
+                    lda #tempx
+            .fi
+
+            sta X1
+
+            lda #\y+ty
+            sta Y1
+
+            jsr GFX_DRAWBYTEPATTERN
+            
+            lda r4L                 ; increment next data byte pointer
+            clc
+            adc #$01
+            sta r4L
+            bcc +
+            inc r4H
++                      
+            tempx := tempx + 8
+
+        .next
+
+        tempx := \x
+    .next
+.endm
+
 DrawLine .macro x1, y1, x2, y2
 .if \x1 > 255
         lda #$01
@@ -253,15 +300,17 @@ ClearRect .macro x1, y1, x2, y2
 
 .endm
 
-CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2
+CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2, line
 
-    ; top/bottom 
-    #DrawLine \x1, \y1, \x2, \y1
-    #DrawLine \x1, \y2, \x2, \y2
+    .if \line == 1
+        ; top/bottom 
+        #DrawLine \x1, \y1, \x2, \y1
+        #DrawLine \x1, \y2, \x2, \y2
 
-    ; left / right
-    #DrawLine \x1, \y1, \x1, \y2
-    #DrawLine \x2, \y1, \x2, \y2
+        ; left / right
+        #DrawLine \x1, \y1, \x1, \y2
+        #DrawLine \x2, \y1, \x2, \y2
+    .endif
 
     ; find spot for control
     lda #$ff

@@ -50,6 +50,7 @@ INIT_MOUSE      = $9f00
 
 GFX_INIT        = $c000
 GFX_SETPIXEL    = $c00f
+GFX_DRAWBYTEPATTERN = $c021
 GFX_ON          = $c006
 GFX_OFF         = $c009
 GFX_SETCOLOR    = $c00c

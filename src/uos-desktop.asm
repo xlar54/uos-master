@@ -38,7 +38,7 @@
         #PenWrite
         #DrawLine 0,189,319,189
         
-        #CreateButton 0, 0, <MNU_ULTOS, >MNU_ULTOS, 0,189,30,199
+        #CreateButton 0, 0, <MNU_ULTOS, >MNU_ULTOS, 0,189,30,199,1
         #Text 5, 191, mnu_main
         
         #Text 279, 191, time
@@ -148,7 +148,7 @@ MENU_APPS = *
         #DrawRect 100,70,219,140,1       
         #Text 112, 80, dlg_apps
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
         #Text 189, 122, ok
 
         jmp MAINLOOP
@@ -158,7 +158,7 @@ MENU_FILEMGR = *
         #DrawRect 100,70,219,140,1       
         #Text 112, 80, dlg_fileman
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
         #Text 189, 122, ok
 
         jmp MAINLOOP
@@ -177,7 +177,7 @@ MENU_CMDLN = *
         #DrawRect 100,70,219,140,1       
         #Text 112, 80, dlg_cmd
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
         #Text 189, 122, ok
 
         jmp MAINLOOP
@@ -191,14 +191,14 @@ MENU_QUIT = *
         left := 180
         width := 30
         height := 10
-        #CreateButton 0,1,<QUIT_YES, >QUIT_YES, left, top, left + width, top + height
+        #CreateButton 0,1,<QUIT_YES, >QUIT_YES, left, top, left + width, top + height,1
         #Text 189, 122, yes
 
         top := 120
         left := 140
         width := 30
         height := 10
-        #CreateButton 0,2,<QUIT_NO, >QUIT_NO, left, top, left + width, top + height
+        #CreateButton 0,2,<QUIT_NO, >QUIT_NO, left, top, left + width, top + height,1
         #Text 148, 122, no 
 
         jmp MAINLOOP
@@ -231,15 +231,15 @@ _openmenu:
         width := 75
         top := 105
 
-        #CreateButton 0, 1, <MENU_APPS,  >MENU_APPS, left, top + (height * 1), width, (top + height) + (height*1)
+        #CreateButton 0, 1, <MENU_APPS,  >MENU_APPS, left, top + (height * 1), width, (top + height) + (height*1),1
         #Text left + 5, top + 4 + (height * 1), mnu_apps
-        #CreateButton 0, 2, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 2), width, (top + height) + (height*2)
+        #CreateButton 0, 2, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 2), width, (top + height) + (height*2),1
         #Text left + 5, top + 4 + (height * 2), mnu_fileman
-        #CreateButton 0, 3, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 3), width, (top + height) + (height*3)
+        #CreateButton 0, 3, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 3), width, (top + height) + (height*3),1
         #Text left + 5, top + 4 + (height * 3), mnu_settings
-        #CreateButton 0, 4, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 4), width, (top + height) + (height*4)
+        #CreateButton 0, 4, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 4), width, (top + height) + (height*4),1
         #Text left + 5, top + 4 + (height * 4), mnu_cmdline
-        #CreateButton 0, 5, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 5), width, (top + height) + (height*5)
+        #CreateButton 0, 5, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 5), width, (top + height) + (height*5),1
         #Text left + 5, top + 4 + (height * 5), mnu_quit
 
         jmp MAINLOOP
