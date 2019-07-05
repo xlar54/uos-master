@@ -18,43 +18,37 @@
 ;    along with UltOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
 
-brkVectorlo     = $0316
-brkVectorhi     = $0317
+.include "equates.inc"
+.include "routines.inc"
+.include "macros.inc"
+.include "kernal.inc"
+.include "vic-ii.inc"
+.include "io.inc"
 
-MAINLOOP        = $0811
-FIND_CTL        = $0814
-STASH_APP       = $0817
-FETCH_APP       = $081a
-LOAD_IMM        = $081d
-APP_LOADER      = $0820
+* = APP_START
 
-DESK_START      = $1000
-DESK_END        = $2fff
+    #RegisterApp
 
-APP_START       = $3000
-APP_END         = $8fff
+    #DrawRect 80,70,239,140,0
+    #DrawRect 80,70,239,84,0
+    #CreateButton 1,0,<ON_CLOSE, >ON_CLOSE,224,70,239,84
+    #Text 88,74, title
+    #Text 229,73, x
+    ;#DrawLine 132,72,224,72
+    #DrawLine 132,74,224,74
+    #DrawLine 132,76,224,76
+    #DrawLine 132,78,224,78
+    #DrawLine 132,80,224,80
+    ;#DrawLine 132,82,224,82
 
-APP_CTL_TBL     = $9000
-APP_CTL_CTR     = $9000
-APP_CTL_BUF     = $9001
-APP_ID_TBL      = $9b00
+    jmp MAINLOOP
 
-REU_SIZE        = $9c00
-REU_STASH       = $9c03
-REU_FETCH       = $9c06
-SAVEBITMAP      = $9c09
-FETCHBITMAP     = $9c0c
-REU_PARAMS      = $9c0f
+title:  .text "Settings", $00
+x:      .text "x", $00
 
-INIT_MOUSE      = $9f00
-
-GFX_INIT        = $c000
-GFX_SETPIXEL    = $c00f
-GFX_ON          = $c006
-GFX_OFF         = $c009
-GFX_SETCOLOR    = $c00c
-GFX_LINE        = $c015
-GFX_CIRCLE      = $c018
-GPUTC           = $c01b
-GPUTS           = $c01e
+ON_CLOSE = *
+    #UnregisterApp
+    jsr FETCHBITMAP
+    #RemoveButton 1,0
+    jmp MAINLOOP
 

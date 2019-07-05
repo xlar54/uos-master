@@ -23,11 +23,13 @@
 .include "macros.inc"
 .include "kernal.inc"
 .include "vic-ii.inc"
+.include "io.inc"
 
 
-* = APP_START
+* = DESK_START
 
         #RegisterApp
+
         lda #<APP_TICK
         sta $033c
         lda #>APP_TICK
@@ -46,17 +48,17 @@
         RTS
 
 APP_TICK = *
-        ;inc VIC_BASE + VIC_BORDER_COL
-        lda minute
-        cmp $dc0a
+        lda minute      ; check if minute has changed
+        cmp TODMIN
         bne _updateclock
         jmp _done
-_updateclock:
-        lda $dc0a
+_updateclock:           ; if so, update the clock
+        lda TODMIN
         sta minute
         #ClearRect 269, 191, 319, 199
         ldy #$00
-        lda $dc0b       ; hour (tens)
+        lda TODHRS      ; hour (tens)
+        and #$7f        ; ignore AM/PM for now
         ror
         clc 
         ror
@@ -69,7 +71,7 @@ _updateclock:
         adc #$30        ; convert to petscii
         sta time,y
         iny
-        lda $dc0b       ; hour (ones)
+        lda TODHRS      ; hour (ones)
         and #$0f
         adc #$30        ; convert to petscii
         sta time,y
@@ -77,7 +79,7 @@ _updateclock:
         lda #':'
         sta time,y
         iny
-        lda $dc0a       ; mins (tens)
+        lda TODMIN      ;mins (tens)
         ror
         clc 
         ror
@@ -90,10 +92,21 @@ _updateclock:
         adc #$30        ; convert to petscii
         sta time,y
         iny
-        lda $dc0a       ; mins (ones)
+        lda TODMIN      ; mins (ones)
         and #$0f
         adc #$30        ; convert to petscii
         sta time,y
+        iny
+        iny
+        lda TODHRS      ; check if AM/PM
+        and #$80
+        cmp #$80
+        beq _pm 
+        lda #'A'
+        sta time,y
+        jmp _startclk
+_pm:    lda #'P'
+        sta time,y 
 .comment
         iny
         lda #':'
@@ -117,7 +130,7 @@ _updateclock:
         adc #$30        ; convert to petscii
         sta time,y
 .endc
-
+_startclk:
         lda $dc08       ; tod has stopped since we read the hour value
         sta $dc08       ; writing to the 10th/sec value restarts tod
 
@@ -128,6 +141,16 @@ _done:
 WIN_OK = *
         jsr FETCHBITMAP
         #RemoveButton 0,1
+        jmp MAINLOOP
+
+MENU_APPS = *
+        jsr closemenu
+        #DrawRect 100,70,219,140,1       
+        #Text 112, 80, dlg_apps
+
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
+        #Text 189, 122, ok
+
         jmp MAINLOOP
 
 MENU_FILEMGR = *
@@ -142,13 +165,12 @@ MENU_FILEMGR = *
 
 MENU_SETTINGS = *
         jsr closemenu
-        #DrawRect 100,70,219,140,1       
-        #Text 112, 80, dlg_settings
+        
+        jsr LOAD_IMM
+        .text "uos-settings",$00
+        jsr APP_LOADER
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130
-        #Text 189, 122, ok
-
-        jmp MAINLOOP
+        jmp APP_START
 
 MENU_CMDLN = *
         jsr closemenu
@@ -207,16 +229,18 @@ _openmenu:
         height := 14
         left := 0
         width := 75
-        top := 119
+        top := 105
 
-        #CreateButton 0, 1, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 1), width, (top + height) + (height*1)
-        #Text left + 5, top + 4 + (height * 1), mnu_fileman
-        #CreateButton 0, 2, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 2), width, (top + height) + (height*2)
-        #Text left + 5, top + 4 + (height * 2), mnu_settings
-        #CreateButton 0, 3, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 3), width, (top + height) + (height*3)
-        #Text left + 5, top + 4 + (height * 3), mnu_cmdline
-        #CreateButton 0, 4, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 4), width, (top + height) + (height*4)
-        #Text left + 5, top + 4 + (height * 4), mnu_quit
+        #CreateButton 0, 1, <MENU_APPS,  >MENU_APPS, left, top + (height * 1), width, (top + height) + (height*1)
+        #Text left + 5, top + 4 + (height * 1), mnu_apps
+        #CreateButton 0, 2, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 2), width, (top + height) + (height*2)
+        #Text left + 5, top + 4 + (height * 2), mnu_fileman
+        #CreateButton 0, 3, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 3), width, (top + height) + (height*3)
+        #Text left + 5, top + 4 + (height * 3), mnu_settings
+        #CreateButton 0, 4, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 4), width, (top + height) + (height*4)
+        #Text left + 5, top + 4 + (height * 4), mnu_cmdline
+        #CreateButton 0, 5, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 5), width, (top + height) + (height*5)
+        #Text left + 5, top + 4 + (height * 5), mnu_quit
 
         jmp MAINLOOP
 
@@ -236,11 +260,13 @@ nop
 ;         BEQ WAIT
 ;         RTS
 
+dlg_apps:       .text "Apps submenu", $00
 dlg_fileman:    .text "File manager", $00
 dlg_settings:   .text "Settings", $00
 dlg_cmd:        .text "Cmd Line", $00
 dlg_quit:       .text "Quit: Are you sure?", $00
 
+mnu_apps:       .text "applications", $00
 mnu_fileman:    .text "file manager", $00
 mnu_quit:       .text "quit", $00
 mnu_settings:   .text "settings", $00
@@ -248,7 +274,6 @@ mnu_cmdline:    .text "command line", $00
 mnu_main:       .text "ultos", $00
 
 time:           .text "12:00 PM", $00
-clrtime:        .text "        ", $00
 
 yes:    .text "Yes", $00
 no:     .text "No", $00
@@ -260,3 +285,4 @@ menuopen:
 
 minute:
         .byte $00
+

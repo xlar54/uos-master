@@ -387,3 +387,8 @@ RegisterApp .macro
     lda APP_ID_TBL
 .endm
 
+UnregisterApp .macro
+    dec APP_ID_TBL
+    lda APP_ID_TBL
+.endm
+

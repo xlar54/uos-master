@@ -17,7 +17,7 @@
 ;    You should have received a copy of the GNU General Public License
 ;    along with UltOS.  If not, see <https://www.gnu.org/licenses/>.
 ;==========================================================================
-;
+
 	*=$9c00
 ;
 ;
@@ -278,3 +278,5 @@ FETCHBITMAP:
         lda #>BITMAPSZ
         sta params+6
         jmp FETCH
+
+

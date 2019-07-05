@@ -23,6 +23,7 @@
 .include "macros.inc"
 .include "kernal.inc"
 .include "vic-ii.inc"
+.include "io.inc"
 
 
 * = $0801    ;start of BASIC area
@@ -38,20 +39,24 @@
         jmp START
         jmp main_loop   ; main loop entry
         jmp find_control
+        jmp STASHAPP
+        jmp FETCHAPP
+        jmp LOADIMM
+        jmp LOADER
 
 ; ==========================================================
 ; START
 ; Initialize the system
 ; ==========================================================
 START:
-        LDA #$01	; Load clock registers with inital time
-	STA $DC0B	; Store 12 in hour  (Bit 7=PM)
+        LDA #$88	; Load clock registers with inital time
+	STA TODHRS	; Store 12 in hour  (Bit 7=PM)
 	LDA #$54
-	STA $DC0A	; Store 0 in minutes
+	STA TODMIN	; Store 0 in minutes
 	LDA #$00
-	STA $DC09	; Store 0 in seconds
+	STA TODSEC	; Store 0 in seconds
 	LDA #$00
-	STA $DC08	; Store 0 in tenth of a second
+	STA TODTEN	; Store 0 in tenth of a second
 			; Clock starts after writing to this register
         lda #$01
         sta r16         ; second register test
@@ -151,7 +156,7 @@ setup:
         sta $01
 
         ; start the application
-        jsr APP_START
+        jsr DESK_START
 
 ; ==========================================================
 ; Main input waiting loop
@@ -583,8 +588,45 @@ _return:
         pla
         rts
 
+; ==========================================================
+; Stash App
+; Saves current running app to REU
+; ==========================================================
+STASHAPP:
+        lda #<APP_START                 ; source addr
+        sta REU_PARAMS
+        lda #>APP_START
+        sta REU_PARAMS+1
+        lda #$00                        ; expanson ram addr
+        sta REU_PARAMS+2
+        lda #$00
+        sta REU_PARAMS+3
+        lda #$02                        ; bank 2
+        sta REU_PARAMS+4                ; expansion bank #
+        lda #<(APP_END-APP_START)    ; bytes to move         
+        sta REU_PARAMS+5
+        lda #>(APP_END-APP_START)
+        sta REU_PARAMS+6
+        jsr REU_STASH
+        jmp MAINLOOP
 
-
+FETCHAPP:
+        lda #<APP_START                 ; source addr
+        sta REU_PARAMS
+        lda #>APP_START
+        sta REU_PARAMS+1
+        lda #$0                         ; expanson ram addr
+        sta REU_PARAMS+2
+        lda #$00
+        sta REU_PARAMS+3
+        lda #$02                        ; bank 2
+        sta REU_PARAMS+4                ; expansion bank #
+        lda #<(APP_END-APP_START)    ; bytes to move         
+        sta REU_PARAMS+5
+        lda #>(APP_END-APP_START)
+        sta REU_PARAMS+6
+        jsr REU_FETCH
+        jmp MAINLOOP
 
 
         
