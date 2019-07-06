@@ -31,7 +31,7 @@ APP_LOADER      = $0820
 DESK_START      = $1000
 DESK_END        = $2fff
 
-APP_START       = $3000
+APP_START       = $4000
 APP_END         = $8fff
 
 APP_CTL_TBL     = $9000

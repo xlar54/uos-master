@@ -49,9 +49,9 @@
 ; Initialize the system
 ; ==========================================================
 START:
-        LDA #$88	; Load clock registers with inital time
+        LDA #$12	; Load clock registers with inital time
 	STA TODHRS	; Store 12 in hour  (Bit 7=PM)
-	LDA #$54
+	LDA #$00
 	STA TODMIN	; Store 0 in minutes
 	LDA #$00
 	STA TODSEC	; Store 0 in seconds
