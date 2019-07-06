@@ -23,8 +23,8 @@ brkVectorhi     = $0317
 
 MAINLOOP        = $0811
 FIND_CTL        = $0814
-STASH_APP       = $0817
-FETCH_APP       = $081a
+FS_APP          = $0817
+FS_SCREEN       = $081a
 LOAD_IMM        = $081d
 APP_LOADER      = $0820
 
@@ -42,11 +42,11 @@ APP_ID_TBL      = $9b00
 REU_SIZE        = $9c00
 REU_STASH       = $9c03
 REU_FETCH       = $9c06
-SAVEBITMAP      = $9c09
-FETCHBITMAP     = $9c0c
-REU_PARAMS      = $9c0f
+REU_PARAMS      = $9c09
 
 INIT_MOUSE      = $9f00
+
+BITMAP_START    = $a000
 
 GFX_INIT        = $c000
 GFX_SETPIXEL    = $c00f

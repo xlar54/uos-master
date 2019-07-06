@@ -29,11 +29,13 @@
 
     #RegisterApp
 
-    #DrawRect 80,70,239,140,0
-    #DrawRect 80,70,239,84,0
-    #CreateButton 1,0,<ON_CLOSE, >ON_CLOSE,224,70,239,84,1
-    #Text 88,74, title
-    #Text 229,73, x
+    #CreateWindow 1, title, 80,70, 159, 70
+
+    ;#DrawRect 80,70,239,140,0
+    ;#DrawRect 80,70,239,84,0
+    ;#CreateButton 1,0,<ON_CLOSE, >ON_CLOSE,224,70,239,84,1
+    ;#Text 88,74, title
+    ;#Text 229,73, x
 
     #DrawLine 132,74,224,74
     #DrawLine 132,76,224,76
@@ -136,12 +138,14 @@ img_drives:
 
 ON_CLOSE:
     #UnregisterApp
-    jsr FETCHBITMAP
+    #FetchScreen
     #RemoveButton 1,0
     jmp MAINLOOP
 
 ON_TIME:
-    jsr FETCHBITMAP
+    #FetchScreen
+    ;#ClearRect 100,70,219,140
+
     #RemoveButton 1,0
     #RemoveButton 1,1
 
@@ -154,7 +158,7 @@ ON_TIME:
     jmp MAINLOOP
 
 ON_OK = *
-    jsr FETCHBITMAP
+    #FetchScreen
     #RemoveButton 0,1
     jmp MAINLOOP
 

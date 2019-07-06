@@ -43,8 +43,6 @@ REUSTART        = $0000
 start   jmp GETSIZE
         jmp STASH
         jmp FETCH
-        jmp SAVEBITMAP
-        jmp FETCHBITMAP
 ;
 ;
 ;===========================================
@@ -244,39 +242,6 @@ xfer64:
         cli             ; and return.
         rts
 
-SAVEBITMAP:
-        lda #<BITMAP    ; source addr
-        sta params
-        lda #>BITMAP
-        sta params+1
-        lda #<REUSTART  ; expanson ram addr
-        sta params+2
-        lda #>REUSTART
-        sta params+3
-        lda #$01
-        sta params+4    ; expansion bank #
-        lda #<BITMAPSZ  ; bytes to move         
-        sta params+5
-        lda #>BITMAPSZ
-        sta params+6
-        jmp STASH
 
-
-FETCHBITMAP:
-        lda #<BITMAP    ; source addr
-        sta params
-        lda #>BITMAP
-        sta params+1
-        lda #<REUSTART  ; expanson ram addr
-        sta params+2
-        lda #>REUSTART
-        sta params+3
-        lda #$01
-        sta params+4    ; expansion bank #
-        lda #<BITMAPSZ  ; bytes to move         
-        sta params+5
-        lda #>BITMAPSZ
-        sta params+6
-        jmp FETCH
 
 

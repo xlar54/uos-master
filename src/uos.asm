@@ -39,8 +39,8 @@
         jmp START
         jmp main_loop   ; main loop entry
         jmp find_control
-        jmp STASHAPP
-        jmp FETCHAPP
+        jmp FETCH_STASH_APP
+        jmp FETCH_STASH_SCREEN
         jmp LOADIMM
         jmp LOADER
 
@@ -116,17 +116,17 @@ loadfiles:
 ; Various post loading initialization code
 ; ==========================================================
 setup:
-        ; clear app id table
-        lda #$ff 
-        sta APP_ID_TBL
-
-        jsr SETUP_CTL_BUF
-
         ; set up the mouse irq
         jsr INIT_MOUSE
 
         #HiresInit
         #HiresOn VIC_COLOR_BLACK, VIC_COLOR_CYAN
+
+        ; clear app id table
+        lda #$ff 
+        sta APP_ID_TBL
+
+        jsr SETUP_CTL_BUF
 
         ; enable sprite 0
         lda #$01    
@@ -145,15 +145,15 @@ setup:
         sta VIC_BASE + VIC_SPR0_X
         sta VIC_BASE + VIC_SPR0_Y
 
+        ; disable basic rom
+        lda #$35
+        sta $01
+
         ; point brk vector to our routine
         lda #<SYSERR
         sta brkVectorlo
         lda #>SYSERR
         sta brkVectorhi
-
-        ; disable basic rom
-        lda #$35
-        sta $01
 
         ; start the application
         jsr DESK_START
@@ -483,7 +483,10 @@ SYSERR:
         lda r0L
 	jsr er1
         #DrawRect 100,70,219,140,1
-        #Text $00, $70, $50, panicstr
+        ;#DrawImage 112, 85, 24, 44, img_stop
+        ;#Text 146, 85, oops
+        #Text 112, 85, oops
+        #Text 112, 105, panicstr
 _forever:
         jmp _forever
 
@@ -506,13 +509,38 @@ er2:	cmp #10
 er3:	addv '0'+7
 er4:	sta panicaddr,x
 	rts
-
+oops:
+        .text "SYSTEM SUSPENDED", $00
 panicstr:
         .text "Error near "
         .byte "$"
 panicaddr:
 	.text "xxxx"
 	.byte $00
+
+img_stop:
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%01111110,%00000000
+.byte %00000000,%11111111,%00000000
+.byte %00000001,%11111111,%10000000
+.byte %00000011,%11111111,%11000000
+.byte %00000111,%00001010,%01100000
+.byte %00000110,%11010100,%10100000
+.byte %00000111,%01010100,%01100000
+.byte %00000110,%11011010,%11100000
+.byte %00000011,%11111111,%11000000
+.byte %00000001,%11111111,%10000000
+.byte %00000000,%11111111,%00000000
+.byte %00000000,%01111110,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
+.byte %00000000,%00000000,%00000000
 
 ; ==========================================================
 ; Set up Control Buffer
@@ -589,10 +617,42 @@ _return:
         rts
 
 ; ==========================================================
-; Stash App
-; Saves current running app to REU
+; Fetch or Stash Screen Bitmap
+; .a = 0        - Stash
+; .a <> 0       - Fetch
 ; ==========================================================
-STASHAPP:
+FETCH_STASH_SCREEN:
+        pha
+        lda #<BITMAP_START              ; source addr
+        sta REU_PARAMS
+        lda #>BITMAP_START
+        sta REU_PARAMS+1
+        lda #$00                        ; expanson ram addr
+        sta REU_PARAMS+2
+        lda #$00
+        sta REU_PARAMS+3
+        lda #$00                        ; bank 0
+        sta REU_PARAMS+4                ; expansion bank #
+        lda #<$2000                     ; bytes to move         
+        sta REU_PARAMS+5
+        lda #>$2000
+        sta REU_PARAMS+6
+        pla
+        beq _stash
+        jsr REU_FETCH
+        rts
+_stash:
+        jsr REU_STASH
+        rts
+
+; ==========================================================
+; Fetch or Stash App
+; .a = 0        - Stash
+; .a <> 0       - Fetch
+; Saves current app to REU
+; ==========================================================
+FETCH_STASH_APP:
+        pha
         lda #<APP_START                 ; source addr
         sta REU_PARAMS
         lda #>APP_START
@@ -607,26 +667,16 @@ STASHAPP:
         sta REU_PARAMS+5
         lda #>(APP_END-APP_START)
         sta REU_PARAMS+6
+        pla
+        beq _stash
+        jsr REU_FETCH
+        jmp MAINLOOP
+_stash:
         jsr REU_STASH
         jmp MAINLOOP
 
-FETCHAPP:
-        lda #<APP_START                 ; source addr
-        sta REU_PARAMS
-        lda #>APP_START
-        sta REU_PARAMS+1
-        lda #$0                         ; expanson ram addr
-        sta REU_PARAMS+2
-        lda #$00
-        sta REU_PARAMS+3
-        lda #$02                        ; bank 2
-        sta REU_PARAMS+4                ; expansion bank #
-        lda #<(APP_END-APP_START)    ; bytes to move         
-        sta REU_PARAMS+5
-        lda #>(APP_END-APP_START)
-        sta REU_PARAMS+6
-        jsr REU_FETCH
-        jmp MAINLOOP
+
+
 
 
         

@@ -262,7 +262,26 @@ DrawLine .macro x1, y1, x2, y2
 
 
 DrawRect .macro x1, y1, x2, y2, shadow
+.comment
+    memloc := BITMAP_START + (\x1 / 8)
+    size := (\x2 / 8) - (\x1 / 8)
 
+    lda #<memloc        ; source addr
+    sta REU_PARAMS
+    lda #>memloc
+    sta REU_PARAMS+1
+    lda #<$0000         ; expanson ram addr
+    sta REU_PARAMS+2
+    lda #>$0000
+    sta REU_PARAMS+3
+    lda #$03
+    sta REU_PARAMS+4    ; expansion bank #
+    lda #<size          ; bytes to move         
+    sta REU_PARAMS+5
+    lda #>size
+    sta REU_PARAMS+6
+    jmp REU_STASH
+.endc
     ; top/bottom 
     #DrawLine \x1, \y1, \x2, \y1
     #DrawLine \x1, \y2, \x2, \y2
@@ -441,3 +460,27 @@ UnregisterApp .macro
     lda APP_ID_TBL
 .endm
 
+SaveScreen .macro
+    lda #$00
+    jsr FS_SCREEN
+.endm
+
+FetchScreen .macro
+    lda #$01
+    jsr FS_SCREEN
+.endm
+
+CreateWindow .macro appId, title, x, y, width, height
+
+    #DrawRect \x,\y,\width+\x,\height+\y,0
+    #DrawLine \x,\y+14,\x+\width,\y+14
+    #CreateButton \appId,0,<ON_CLOSE, >ON_CLOSE,\x+\width-15,\y,\x+\width,\y+14,1
+    #Text \x+8,\y+4, title
+    #Text \x+149,\y+4, x
+
+    #DrawLine \x+52,\y+4,\width-15,\y+4
+    #DrawLine \x+52,\y+6,\width-15,\y+6
+    #DrawLine \x+52,\y+8,\width-15,\y+8
+    #DrawLine \x+52,\y+10,\width-15,\y+10
+
+.endm

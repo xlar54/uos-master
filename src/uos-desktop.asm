@@ -49,8 +49,7 @@
         #DrawImage 280, 150, 24, 44, img_trash
         #Text 283,174, trash
         
-        jsr SAVEBITMAP
-
+        #SaveScreen
         RTS
 
 computer:
@@ -198,7 +197,7 @@ _done:
         rts
 
 WIN_OK = *
-        jsr FETCHBITMAP
+        #FetchScreen 
         #RemoveButton 0,1
         jmp MAINLOOP
 
@@ -266,7 +265,7 @@ QUIT_YES:
         jmp $fce2
 
 QUIT_NO:
-        jsr FETCHBITMAP
+        #FetchScreen
         #RemoveButton 0,1
         #RemoveButton 0,2
         jmp MAINLOOP
@@ -281,7 +280,7 @@ _farclosemenu:
         jmp MAINLOOP
 
 _openmenu:
-        jsr SAVEBITMAP
+        #SaveScreen
         lda #$01
         sta menuopen
         
@@ -304,7 +303,7 @@ _openmenu:
         jmp MAINLOOP
 
 closemenu:
-        jsr FETCHBITMAP
+        #FetchScreen
 nop
         #RemoveButton 0,1
         #RemoveButton 0,2
