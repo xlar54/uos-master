@@ -25,13 +25,15 @@ MAINLOOP        = $0811
 FIND_CTL        = $0814
 FS_APP          = $0817
 FS_SCREEN       = $081a
-LOAD_IMM        = $081d
-APP_LOADER      = $0820
+FS_RECT         = $081d
+CLR_RECT        = $0820
+LOAD_IMM        = $0823
+APP_LOADER      = $0826
 
 DESK_START      = $1000
 DESK_END        = $2fff
 
-APP_START       = $4000
+APP_START       = $5000
 APP_END         = $8fff
 
 APP_CTL_TBL     = $9000

@@ -261,67 +261,38 @@ DrawLine .macro x1, y1, x2, y2
 .endm
 
 
-DrawRect .macro x1, y1, x2, y2, shadow
-.comment
-    memloc := BITMAP_START + (\x1 / 8)
-    size := (\x2 / 8) - (\x1 / 8)
+DrawRect .macro x, y, width, height, shadow
 
-    lda #<memloc        ; source addr
-    sta REU_PARAMS
-    lda #>memloc
-    sta REU_PARAMS+1
-    lda #<$0000         ; expanson ram addr
-    sta REU_PARAMS+2
-    lda #>$0000
-    sta REU_PARAMS+3
-    lda #$03
-    sta REU_PARAMS+4    ; expansion bank #
-    lda #<size          ; bytes to move         
-    sta REU_PARAMS+5
-    lda #>size
-    sta REU_PARAMS+6
-    jmp REU_STASH
-.endc
     ; top/bottom 
-    #DrawLine \x1, \y1, \x2, \y1
-    #DrawLine \x1, \y2, \x2, \y2
+    #DrawLine \x, \y, \x + \width, \y
+    #DrawLine \x, \y + \height, \x + \width, \y + \height
 
     ; left / right
-    #DrawLine \x1, \y1, \x1, \y2
-    #DrawLine \x2, \y1, \x2, \y2
+    #DrawLine \x, \y, \x, \y + \height
+    #DrawLine \x + \width, \y, \x + \width, \y + \height
 
 .if \shadow = 1
     ; bottom shadow
-    #DrawLine \x1+5, \y2+1, \x2+5, \y2+1
-    #DrawLine \x1+5, \y2+2, \x2+5, \y2+2
-    #DrawLine \x1+5, \y2+3, \x2+5, \y2+3
-    #DrawLine \x1+5, \y2+4, \x2+5, \y2+4
-    #DrawLine \x1+5, \y2+5, \x2+5, \y2+5
+    #DrawLine \x+5, \y+\height+1, \x+\width+5, \y+\height+1
+    #DrawLine \x+5, \y+\height+2, \x+\width+5, \y+\height+2
+    #DrawLine \x+5, \y+\height+3, \x+\width+5, \y+\height+3
+    #DrawLine \x+5, \y+\height+4, \x+\width+5, \y+\height+4
+    #DrawLine \x+5, \y+\height+5, \x+\width+5, \y+\height+5
     
     ; right shadow
-    #DrawLine \x2+1, \y1+5, \x2+1, \y2+5
-    #DrawLine \x2+2, \y1+5, \x2+2, \y2+5
-    #DrawLine \x2+3, \y1+5, \x2+3, \y2+5
-    #DrawLine \x2+4, \y1+5, \x2+4, \y2+5
-    #DrawLine \x2+5, \y1+5, \x2+5, \y2+5
+    #DrawLine \x+\width+1, \y+5, \x+\width+1, \y+\height+5
+    #DrawLine \x+\width+2, \y+5, \x+\width+2, \y+\height+5
+    #DrawLine \x+\width+3, \y+5, \x+\width+3, \y+\height+5
+    #DrawLine \x+\width+4, \y+5, \x+\width+4, \y+\height+5
+    #DrawLine \x+\width+5, \y+5, \x+\width+5, \y+\height+5
 .fi
 
 .endm
 
-ClearRect .macro x1, y1, x2, y2
-    #PenErase
 
-.for y := \y1, y <= \y2, y := y + 1
-    #DrawLine \x1, y, \x2, y
-.next
+CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2, border
 
-    #PenWrite
-
-.endm
-
-CreateButton .macro appid, btnid, lo, hi, x1, y1, x2, y2, line
-
-    .if \line == 1
+    .if \border == true
         ; top/bottom 
         #DrawLine \x1, \y1, \x2, \y1
         #DrawLine \x1, \y2, \x2, \y2
@@ -470,17 +441,137 @@ FetchScreen .macro
     jsr FS_SCREEN
 .endm
 
-CreateWindow .macro appId, title, x, y, width, height
+SaveRect .macro x, y, width, height
 
-    #DrawRect \x,\y,\width+\x,\height+\y,0
-    #DrawLine \x,\y+14,\x+\width,\y+14
-    #CreateButton \appId,0,<ON_CLOSE, >ON_CLOSE,\x+\width-15,\y,\x+\width,\y+14,1
-    #Text \x+8,\y+4, title
-    #Text \x+149,\y+4, x
+    exploc      := 0
+    firstrow    := \y / 8
+    lastrow     := firstrow + ((\y + \height) / 8)
+    row         := 0
+    col         := (\x / 8)
+    memsz       := (((\x + \width) / 8) * 8) + 8
 
-    #DrawLine \x+52,\y+4,\width-15,\y+4
-    #DrawLine \x+52,\y+6,\width-15,\y+6
-    #DrawLine \x+52,\y+8,\width-15,\y+8
-    #DrawLine \x+52,\y+10,\width-15,\y+10
+    .for row := firstrow, row <= lastrow, row := row + 1 
+
+        memloc := BITMAP_START + (row * 320) + (col * 8)
+
+        lda #<memloc
+        sta r0L
+        lda #>memloc
+        sta r0H
+        lda #<exploc
+        sta r1L
+        lda #>exploc
+        sta r1H
+        lda #<memsz
+        sta r2L
+        lda #>memsz
+        sta r2H
+
+        lda #$00
+        jsr FS_RECT
+
+        exploc := exploc + memsz + 1
+    .next
+
+.endm
+
+FetchRect .macro x, y, width, height
+
+    exploc      := 0
+    firstrow    := \y / 8
+    lastrow     := firstrow + ((\y + \height) / 8)
+    row         := 0
+    col         := (\x / 8)
+    memsz       := (((\x + \width) / 8) * 8) + 8
+
+    .for row := firstrow, row <= lastrow, row := row + 1 
+
+        memloc := BITMAP_START + (row * 320) + (col * 8)
+
+        lda #<memloc
+        sta r0L
+        lda #>memloc
+        sta r0H
+        lda #<exploc
+        sta r1L
+        lda #>exploc
+        sta r1H
+        lda #<memsz
+        sta r2L
+        lda #>memsz
+        sta r2H
+
+        lda #$01
+        jsr FS_RECT
+
+        exploc := exploc + memsz + 1
+    .next
+
+.endm
+
+ClrRect .macro x, y, width, height
+
+    exploc      := 0
+    firstrow    := \y / 8
+    lastrow     := (\y + \height) / 8
+    row         := 0
+    col         := (\x / 8)
+    lastcol     := col + (\width / 8) + 1
+    memsz       := (lastcol - col) * 8
+
+    .for row := firstrow, row <= lastrow, row := row + 1 
+
+        memloc := BITMAP_START + (row * 320) + (col * 8)
+
+        lda #<memloc
+        sta r0L
+        lda #>memloc
+        sta r0H
+        lda #<exploc
+        sta r1L
+        lda #>exploc
+        sta r1H
+        lda #<memsz
+        sta r2L
+        lda #>memsz
+        sta r2H
+
+        jsr CLR_RECT
+
+        exploc := exploc + memsz + 1
+    .next
+
+.endm
+
+CreateWindow .macro appId, x, y, width, height, titlebar, title
+
+    #SaveRect \x, \y, \width, \height
+    #ClrRect \x, \y,\width, \height
+
+    #DrawRect \x,\y,\width,\height,0
+
+    .if \titlebar == true
+        #DrawLine \x,\y+14,\x+\width,\y+14
+        #CreateButton \appId,0,<ON_CLOSE, >ON_CLOSE,\x+\width-15,\y,\x+\width,\y+14,1
+        #Text \x+8,\y+4, \title
+        #Text \x+\width-10,\y+3, x
+
+        #DrawLine \x+52,\y+4,\x+\width-15,\y+4
+        #DrawLine \x+52,\y+6,\x+\width-15,\y+6
+        #DrawLine \x+52,\y+8,\x+\width-15,\y+8
+        #DrawLine \x+52,\y+10,\x+\width-15,\y+10
+    .endif
+
+    ; window ID
+    lda #$00
+
+.endm
+
+CloseWindow .macro windowId, x, y, width, height
+
+    ; find window
+    #FetchRect \x, \y, \width, \height
+
+    ; ...destroy child controls
 
 .endm

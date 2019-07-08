@@ -38,11 +38,12 @@
         #PenWrite
         #DrawLine 0,189,319,189
         
-        #CreateButton 0, 0, <MNU_ULTOS, >MNU_ULTOS, 0,189,30,199,1
+        #CreateButton 0, 0, <MNU_ULTOS, >MNU_ULTOS, 0,189,30,199,true
         #Text 5, 191, mnu_main
         
         #Text 282, 191, time
 
+        #CreateButton 0, 1, <ON_CLICK_COMPUTER, >ON_CLICK_COMPUTER, 10,5,10+24,5+44, false
         #DrawImage 10, 5, 24, 44, img_computer
         #Text 5, 25, computer
 
@@ -57,53 +58,7 @@ computer:
 trash:
         .text "trash", $00
 
-img_computer:
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%11111111,%11100000
-.byte %00000000,%10000000,%00100000
-.byte %00000000,%10010111,%00100000
-.byte %00000000,%10101010,%10100000
-.byte %00000000,%10000000,%00100000
-.byte %00000000,%10100000,%00100000
-.byte %00000000,%10000000,%00100000
-.byte %00000000,%10000000,%00100000
-.byte %00000000,%11111111,%11100000
-.byte %00000000,%11111111,%01100000
-.byte %11111111,%00000000,%00001100
-.byte %10000001,%01111111,%11100010
-.byte %10100001,%10010101,%01110111
-.byte %11111110,%10101010,%10011011
-.byte %00000001,%00000000,%00001000
-.byte %00000000,%11111111,%11110000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
 
-img_trash:
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%01111110,%00000000
-.byte %00000001,%10000001,%10000000
-.byte %00011111,%11111111,%11111000
-.byte %00010000,%00000000,%00001000
-.byte %00011111,%11111111,%11111000
-.byte %00000000,%00000000,%00000000
-.byte %00001000,%00000000,%00010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001001,%00100100,%10010000
-.byte %00001000,%00000000,%00010000
-.byte %00001000,%00000000,%00010000
-.byte %00000111,%11111111,%11100000
-.byte %00000000,%00000000,%00000000
-.byte %00000000,%00000000,%00000000
 
 APP_TICK = *
         lda minute      ; check if minute has changed
@@ -113,7 +68,10 @@ APP_TICK = *
 _updateclock:           ; if so, update the clock
         lda TODMIN
         sta minute
-        #ClearRect 269, 191, 319, 199
+
+        #ClrRect 280, 191, 39, 8
+        #DrawLine 280,189,319,189
+
         ldy #$00
         lda TODHRS      ; hour (tens)
         and #$7f        ; ignore AM/PM for now
@@ -203,20 +161,20 @@ WIN_OK = *
 
 MENU_APPS = *
         jsr closemenu
-        #DrawRect 100,70,219,140,1       
+        #DrawRect 100,70,119,70,1       
         #Text 112, 80, dlg_apps
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,true
         #Text 189, 122, ok
 
         jmp MAINLOOP
 
 MENU_FILEMGR = *
         jsr closemenu
-        #DrawRect 100,70,219,140,1       
+        #DrawRect 100,70,119,70,1       
         #Text 112, 80, dlg_fileman
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,true
         #Text 189, 122, ok
 
         jmp MAINLOOP
@@ -232,31 +190,31 @@ MENU_SETTINGS = *
 
 MENU_CMDLN = *
         jsr closemenu
-        #DrawRect 100,70,219,140,1       
+        #DrawRect 100,70,119,70,1       
         #Text 112, 80, dlg_cmd
 
-        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,1
+        #CreateButton 0,1,<WIN_OK, >WIN_OK,180,120,210,130,true
         #Text 189, 122, ok
 
         jmp MAINLOOP
 
 MENU_QUIT = *
         jsr closemenu
-        #DrawRect 100,70,219,140,1       
+        #DrawRect 100,70,119,70,1      
         #Text 112, 80, dlg_quit
 
         top := 120
         left := 180
         width := 30
         height := 10
-        #CreateButton 0,1,<QUIT_YES, >QUIT_YES, left, top, left + width, top + height,1
+        #CreateButton 0,1,<QUIT_YES, >QUIT_YES, left, top, left + width, top + height,true
         #Text 189, 122, yes
 
         top := 120
         left := 140
         width := 30
         height := 10
-        #CreateButton 0,2,<QUIT_NO, >QUIT_NO, left, top, left + width, top + height,1
+        #CreateButton 0,2,<QUIT_NO, >QUIT_NO, left, top, left + width, top + height,true
         #Text 148, 122, no 
 
         jmp MAINLOOP
@@ -289,15 +247,15 @@ _openmenu:
         width := 75
         top := 105
 
-        #CreateButton 0, 1, <MENU_APPS,  >MENU_APPS, left, top + (height * 1), width, (top + height) + (height*1),1
+        #CreateButton 0, 1, <MENU_APPS,  >MENU_APPS, left, top + (height * 1), width, (top + height) + (height*1),true
         #Text left + 5, top + 4 + (height * 1), mnu_apps
-        #CreateButton 0, 2, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 2), width, (top + height) + (height*2),1
+        #CreateButton 0, 2, <MENU_FILEMGR,  >MENU_FILEMGR, left, top + (height * 2), width, (top + height) + (height*2),true
         #Text left + 5, top + 4 + (height * 2), mnu_fileman
-        #CreateButton 0, 3, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 3), width, (top + height) + (height*3),1
+        #CreateButton 0, 3, <MENU_SETTINGS, >MENU_SETTINGS,left, top + (height * 3), width, (top + height) + (height*3),true
         #Text left + 5, top + 4 + (height * 3), mnu_settings
-        #CreateButton 0, 4, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 4), width, (top + height) + (height*4),1
+        #CreateButton 0, 4, <MENU_CMDLN,    >MENU_CMDLN   ,left, top + (height * 4), width, (top + height) + (height*4),true
         #Text left + 5, top + 4 + (height * 4), mnu_cmdline
-        #CreateButton 0, 5, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 5), width, (top + height) + (height*5),1
+        #CreateButton 0, 5, <MENU_QUIT,     >MENU_QUIT    ,left, top + (height * 5), width, (top + height) + (height*5),true
         #Text left + 5, top + 4 + (height * 5), mnu_quit
 
         jmp MAINLOOP
@@ -313,6 +271,20 @@ nop
         lda #$00
         sta menuopen
         rts
+
+ON_CLICK_COMPUTER:
+
+        #CreateWindow 1,80,48,159,54,true,win_computer_title
+        jmp MAINLOOP
+
+ON_CLOSE:
+        #CloseWindow 0,80,48,159,54
+        jmp MAINLOOP 
+
+win_computer_title:
+        .text "Computer", $00
+x:
+        .text "x", $00
 
 ;WAIT     JSR GETIN
 ;         BEQ WAIT
@@ -344,3 +316,4 @@ menuopen:
 minute:
         .byte $00
 
+.include "icons_desktop.inc"

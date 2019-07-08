@@ -41,6 +41,8 @@
         jmp find_control
         jmp FETCH_STASH_APP
         jmp FETCH_STASH_SCREEN
+        jmp FETCH_STASH_RECT
+        jmp CLEAR_RECT
         jmp LOADIMM
         jmp LOADER
 
@@ -116,9 +118,6 @@ loadfiles:
 ; Various post loading initialization code
 ; ==========================================================
 setup:
-        ; set up the mouse irq
-        jsr INIT_MOUSE
-
         #HiresInit
         #HiresOn VIC_COLOR_BLACK, VIC_COLOR_CYAN
 
@@ -148,12 +147,34 @@ setup:
         ; disable basic rom
         lda #$35
         sta $01
-
+;comment
+        ; stash the empty screen
+        lda #<BITMAP_START              ; source addr
+        sta REU_PARAMS
+        lda #>BITMAP_START
+        sta REU_PARAMS+1
+        lda #<$0000                     ; expanson ram addr
+        sta REU_PARAMS+2                
+        lda #>$0000
+        sta REU_PARAMS+3
+        lda #$00                        ; bank 0
+        sta REU_PARAMS+4                ; expansion bank #
+        lda #<$2000                     ; bytes to move  (8192)       
+        sta REU_PARAMS+5
+        lda #>$2000
+        sta REU_PARAMS+6
+        jsr REU_STASH
+;endc
         ; point brk vector to our routine
+        sei
         lda #<SYSERR
         sta brkVectorlo
         lda #>SYSERR
         sta brkVectorhi
+        cli
+
+        ; set up the mouse irq
+        jsr INIT_MOUSE
 
         ; start the application
         jsr DESK_START
@@ -482,7 +503,7 @@ SYSERR:
 	jsr er1
         lda r0L
 	jsr er1
-        #DrawRect 100,70,219,140,1
+        #DrawRect 100,70,119,70,1
         ;#DrawImage 112, 85, 24, 44, img_stop
         ;#Text 146, 85, oops
         #Text 112, 85, oops
@@ -617,6 +638,30 @@ _return:
         rts
 
 ; ==========================================================
+; Clear Screen Rectangle
+; Fetches from $0000 (bank 0)
+;       r0 = 64 address
+;       r1 = size in bytes
+; ==========================================================
+CLEAR_RECT:
+        lda r0L                 ; source addr
+        sta REU_PARAMS
+        lda r0H
+        sta REU_PARAMS+1
+        lda r1L                        ; expanson ram addr
+        sta REU_PARAMS+2
+        lda r1H
+        sta REU_PARAMS+3
+        lda #$00                        ; bank 0
+        sta REU_PARAMS+4                ; expansion bank #
+        lda r2L                        ; bytes to move         
+        sta REU_PARAMS+5
+        lda r2H
+        sta REU_PARAMS+6
+        jsr REU_FETCH
+        rts
+
+; ==========================================================
 ; Fetch or Stash Screen Bitmap
 ; .a = 0        - Stash
 ; .a <> 0       - Fetch
@@ -627,13 +672,13 @@ FETCH_STASH_SCREEN:
         sta REU_PARAMS
         lda #>BITMAP_START
         sta REU_PARAMS+1
-        lda #$00                        ; expanson ram addr
-        sta REU_PARAMS+2
-        lda #$00
+        lda #<$2000                     ; expanson ram addr
+        sta REU_PARAMS+2                ; $2000 - $3fff
+        lda #>$2000
         sta REU_PARAMS+3
         lda #$00                        ; bank 0
         sta REU_PARAMS+4                ; expansion bank #
-        lda #<$2000                     ; bytes to move         
+        lda #<$2000                     ; bytes to move  (8192)       
         sta REU_PARAMS+5
         lda #>$2000
         sta REU_PARAMS+6
@@ -658,10 +703,10 @@ FETCH_STASH_APP:
         lda #>APP_START
         sta REU_PARAMS+1
         lda #$00                        ; expanson ram addr
-        sta REU_PARAMS+2
+        sta REU_PARAMS+2                
         lda #$00
         sta REU_PARAMS+3
-        lda #$02                        ; bank 2
+        lda #$01                        ; bank 1
         sta REU_PARAMS+4                ; expansion bank #
         lda #<(APP_END-APP_START)    ; bytes to move         
         sta REU_PARAMS+5
@@ -675,7 +720,36 @@ _stash:
         jsr REU_STASH
         jmp MAINLOOP
 
-
+; ==========================================================
+; Fetch or Stash Screen Rectangle
+; .a = 0        - Stash
+; .a <> 0       - Fetch
+; 
+; Saves current app to REU
+; ==========================================================
+FETCH_STASH_RECT:
+        pha
+        lda r0L                 ; source addr
+        sta REU_PARAMS
+        lda r0H
+        sta REU_PARAMS+1
+        lda r1L                        ; expanson ram addr
+        sta REU_PARAMS+2
+        lda r1H
+        sta REU_PARAMS+3
+        lda #$02                        ; bank 2
+        sta REU_PARAMS+4                ; expansion bank #
+        lda r2L                        ; bytes to move         
+        sta REU_PARAMS+5
+        lda r2H
+        sta REU_PARAMS+6
+        pla
+        beq _stash
+        jsr REU_FETCH
+        rts
+_stash:
+        jsr REU_STASH
+        rts
 
 
 
