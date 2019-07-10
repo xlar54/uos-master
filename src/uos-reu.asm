@@ -176,7 +176,9 @@ STASH:
 _10 	lda params,x	        ; Initialize the DMA 
 	sta $df02,x             ; contoller with our
 	dex                     ; parameters,
-	bpl _10                 ;
+	;bpl _10                 ;
+        cpx #$ff
+        bne _10
 	sty $df01	        ; and issue command.
 
         ldy bnk128              ;  Set the .y register to the
@@ -188,7 +190,16 @@ _10 	lda params,x	        ; Initialize the DMA
 ;===============================
 ;
 ;
-dmarom
+
+; bug here that sometimes ram under rom is seen
+; causing the xfer128 code to run, causing endless
+; loop at $0002 - $ffff, so skip for now
+;
+c64or128:
+        ;jmp xfer64
+        lda #$37
+        sta $01
+
         lda $fffd   ; The high byte of the 
         cmp #$fc    ; reset vector on all C64s
         beq xfer64  ; is equal to $fc.
@@ -226,18 +237,18 @@ bangit sta rcr       ; of this code in both banks.
 ;  c64: turn off all ROMs
 ;============================
 ;
-xfer64:  
+xfer64: 
         sei             ;  Save the value of the
-        lda $01         ; the c64 control port 
-        pha             ; and turn on lower 3 bits
+        ;lda $01         ; the c64 control port 
+        ;pha             ; and turn on lower 3 bits
         ;ora #$03       ; to bank out ROMs, I/O.
-        lda #$35        ; turn off basic so reu can access bitmap
+        lda #$36       ; turn off basic so reu can access bitmap
         sta $01
 
         sta $ff00       ; start delayed transfer by writing anything to $ff00
 
-        pla             ;  Restore the old
-        ;lda #$35       ; restore basic (dont really care since drawing routines are underneath basic)
+        ;pla             ;  Restore the old
+        lda #$37        ; restore basic (dont really care since drawing routines are underneath basic)
         sta $01         ; configuration
         cli             ; and return.
         rts
