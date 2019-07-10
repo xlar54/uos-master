@@ -190,12 +190,22 @@ main_loop:
         lda $dc01
         and #$10
         beq btnclick
-        jmp next
+        jmp main_loop
 btnclick:
+        ; check for drag operation
+        inc mousedowntime
+        bne _keepwaiting
+        inc mousedowntime+1
+        lda mousedowntime+1
+        cmp #$20                ; just check if mouse down for a certain length of time
+        bne _keepwaiting
+        jsr dragmode
+_keepwaiting:
         ; wait for mouse up
         lda $dc01
         and #$10
         beq btnclick
+        jsr normalmode
         jsr TESTCLICK
         bne goodclick
         jmp next
@@ -203,6 +213,24 @@ goodclick:
         jmp (r4L)
 next:
         jmp main_loop
+ 
+dragmode:
+        ; sprite 0 data pointer  
+        lda #$01        ; $8000 = sprite table
+        sta $87f8
+        rts
+
+normalmode:
+        lda #$00
+        sta mousedowntime
+        sta mousedowntime + 1
+        ; sprite 0 data pointer  
+        lda #$00        ; $8000 = sprite table
+        sta $87f8
+        rts
+
+mousedowntime:
+        .byte $00, $00
 
 ; ==========================================================
 ; Find Control
